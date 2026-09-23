@@ -1,5 +1,6 @@
 """CLI `hgr` - mỗi bước pipeline là một lệnh (PLAN.md Mục 6)."""
 import typer
+from pydantic import BaseModel
 
 app = typer.Typer(help="History GraphRAG - chatbot lịch sử Việt Nam", no_args_is_help=True)
 
@@ -11,10 +12,82 @@ def _todo(step: str, milestone: str) -> None:
     raise typer.Exit(1)
 
 
+def _ok(msg: str) -> None:
+    typer.secho(f"[OK] {msg}", fg=typer.colors.GREEN)
+
+
+def _fail(msg: str) -> None:
+    typer.secho(f"[FAIL] {msg}", fg=typer.colors.RED)
+
+
+def _model_pulled(name: str, available: list[str]) -> bool:
+    base = name.split(":")[0]
+    return any(m == name or m.split(":")[0] == base for m in available)
+
+
+class _DoctorPing(BaseModel):
+    ok: bool
+
+
 @app.command()
 def doctor():
     """Kiểm tra Neo4j, Ollama, model đã pull. (M1)"""
-    _todo("doctor", "M1")
+    from hgr.config import get_settings
+    from hgr.graph.store import Neo4jStore
+    from hgr.llm.ollama_client import OllamaClient
+
+    settings = get_settings()
+    healthy = True
+
+    store = Neo4jStore(
+        settings.neo4j.uri, settings.neo4j.user, settings.neo4j.password, settings.neo4j.database
+    )
+    if store.ping():
+        _ok(f"Neo4j kết nối được ({settings.neo4j.uri})")
+    else:
+        _fail(f"Không kết nối được Neo4j ({settings.neo4j.uri}). Đã chạy 'docker compose up -d'?")
+        healthy = False
+    store.close()
+
+    client = OllamaClient(
+        settings.llm.host,
+        settings.llm.chat_model,
+        settings.llm.embed_model,
+        settings.llm.num_ctx,
+        max_retries=settings.llm.max_retries,
+    )
+    available: list[str] = []
+    try:
+        available = client.list_models()
+        _ok(f"Ollama kết nối được ({settings.llm.host})")
+    except Exception as e:
+        _fail(f"Không kết nối được Ollama ({settings.llm.host}): {e}")
+        healthy = False
+
+    for name in (settings.llm.chat_model, settings.llm.embed_model):
+        if _model_pulled(name, available):
+            _ok(f"Model đã pull: {name}")
+        else:
+            _fail(f"Chưa pull model: {name} (chạy: ollama pull {name})")
+            healthy = False
+
+    if healthy:
+        try:
+            result = client.chat_json(
+                [{"role": "user", "content": 'Trả lời đúng JSON schema, đặt trường "ok" = true.'}],
+                _DoctorPing,
+            )
+            if result.ok:
+                _ok("chat_json trả JSON hợp lệ")
+            else:
+                typer.secho('[WARN] chat_json trả JSON hợp lệ nhưng ok=false', fg=typer.colors.YELLOW)
+        except Exception as e:
+            _fail(f"chat_json lỗi: {e}")
+            healthy = False
+
+    if not healthy:
+        raise typer.Exit(1)
+    typer.secho("Tất cả kiểm tra đều OK.", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command()
