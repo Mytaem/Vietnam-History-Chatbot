@@ -1,0 +1,17 @@
+# Trường infobox → quan hệ (confidence 0.95). Tên trường chuẩn hóa: NFC, lowercase, bỏ số cuối.
+# TODO(M4): rà soát tên trường thực tế của các template trên viwiki.
+templates:
+  "hộp thông tin xung đột quân sự":
+    chỉ huy:       {rel: COMMANDED, subject: value, object: page}
+    bên tham chiến: {rel: PARTICIPATED_IN, subject: value, object: page}
+    địa điểm:       {rel: OCCURRED_AT, subject: page, object: value}
+    phần của:       {rel: PART_OF, subject: page, object: value}
+  "thông tin nhân vật hoàng gia":
+    tiền nhiệm:     {rel: SUCCEEDED, subject: page, object: value}
+    kế nhiệm:       {rel: SUCCEEDED, subject: value, object: page}
+    thân phụ:       {rel: CHILD_OF, subject: page, object: value}
+    thân mẫu:       {rel: CHILD_OF, subject: page, object: value}
+    phối ngẫu:      {rel: SPOUSE_OF, subject: page, object: value}
+    triều đại:      {rel: RULED, subject: page, object: value}
+  "thông tin quốc gia cũ":
+    thủ đô:         {rel: CAPITAL_OF, subject: value, object: page}

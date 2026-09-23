@@ -1,0 +1,13 @@
+# Quốc hiệu theo thời gian (source=curated, confidence=1.0). TCN = số âm.
+quoc_hieu:
+  - {name: Văn Lang,                   start: -2879, end: -258, legendary: true}
+  - {name: Âu Lạc,                     start: -257,  end: -179, disputed: true, alt_end: -208}
+  - {name: Vạn Xuân,                   start: 544,   end: 602}
+  - {name: Đại Cồ Việt,                start: 968,   end: 1054}
+  - {name: Đại Việt,                   start: 1054,  end: 1400}
+  - {name: Đại Ngu,                    start: 1400,  end: 1407}
+  - {name: Đại Việt,                   start: 1428,  end: 1804}
+  - {name: Việt Nam,                   start: 1804,  end: 1839}
+  - {name: Đại Nam,                    start: 1839,  end: 1945}
+  - {name: Đế quốc Việt Nam,           start: 1945,  end: 1945, note: "17/4/1945 – 30/8/1945"}
+  - {name: Việt Nam Dân chủ Cộng hòa,  start: 1945,  end: null, note: "từ 2/9/1945"}

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hgr"
+version = "0.1.0"
+description = "History GraphRAG - Chatbot lịch sử Việt Nam (tiền sử → 1945), 100% local LLM"
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[project.scripts]
+hgr = "hgr.cli:app"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "e2e: cần Neo4j + Ollama đang chạy (build mini → hỏi đáp)",
+    "todo: test chờ module được triển khai (tự skip)",
+]

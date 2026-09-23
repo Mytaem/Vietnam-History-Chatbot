@@ -1,0 +1,2 @@
+# Tùy chọn: reranker CPU (bật retrieval.rerank: true trong configs/settings.yaml)
+sentence-transformers>=3.0

@@ -1,0 +1,2 @@
+{"id": "q001", "era": "phongkien", "period": "tran", "intent": "multihop", "question": "Vị vua nào trị vì khi diễn ra trận Bạch Đằng năm 1288, và cha của vị vua đó là ai?", "answer_keywords": ["Trần Nhân Tông", "Trần Thánh Tông"]}
+{"id": "q002", "era": "ngoai_pham_vi", "period": null, "intent": "factoid", "question": "Chiến dịch Điện Biên Phủ diễn ra thế nào?", "expect_out_of_scope": true}

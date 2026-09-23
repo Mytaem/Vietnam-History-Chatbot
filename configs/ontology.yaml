@@ -1,0 +1,36 @@
+# Ontology - xem PLAN.md Mục 4 (Mô hình dữ liệu). Dùng cho prompt trích xuất + validator.
+entity_types:
+  Person:       "Con người (vua, tướng, quan, thủ lĩnh, nhà cách mạng, nhân vật truyền thuyết)"
+  Event:        "Sự kiện; subtype: Battle, War, Uprising, Treaty, Reform, Movement, Coup, Founding"
+  Place:        "Địa danh, thành, kinh đô, sông, núi, di chỉ"
+  Polity:       "Triều đại, quốc gia, nhà nước, chính quyền"
+  Organization: "Tổ chức, đảng phái, hội, mặt trận"
+  Work:         "Văn bản, tác phẩm, bộ luật, chiếu, hịch, truyền thuyết"
+  Culture:      "Văn hóa khảo cổ (Đông Sơn, Hòa Bình, Sa Huỳnh…)"
+
+event_subtypes: [Battle, War, Uprising, Treaty, Reform, Movement, Coup, Founding]
+
+# domain → range; "*" = mọi loại thực thể
+relations:
+  CHILD_OF:        {domain: [Person], range: [Person]}
+  SPOUSE_OF:       {domain: [Person], range: [Person]}
+  MEMBER_OF:       {domain: [Person], range: [Polity, Organization]}
+  BORN_IN:         {domain: [Person], range: [Place]}
+  DIED_IN:         {domain: [Person], range: [Place]}
+  RULED:           {domain: [Person], range: [Polity]}
+  RULED_OVER:      {domain: [Polity, Person], range: [Place, Polity]}
+  SUCCEEDED:       {domain: [Person, Polity, Culture], range: [Person, Polity, Culture]}
+  FOUNDED:         {domain: [Person], range: [Polity, Organization, Place]}
+  CAPITAL_OF:      {domain: [Place], range: [Polity]}
+  COMMANDED:       {domain: [Person], range: [Event]}
+  PARTICIPATED_IN: {domain: [Person, Polity, Organization], range: [Event]}
+  OPPOSED:         {domain: [Person, Polity, Organization], range: [Person, Polity, Organization]}
+  OCCUPIED:        {domain: [Polity], range: [Place, Polity]}
+  OCCURRED_AT:     {domain: [Event], range: [Place]}
+  PART_OF:         {domain: [Event, Place], range: [Event, Place]}
+  CAUSED:          {domain: [Event], range: [Event]}
+  LED_TO:          {domain: [Event], range: [Event]}
+  SIGNED:          {domain: [Person, Polity], range: [Event]}
+  AUTHORED:        {domain: [Person], range: [Work]}
+  FOUND_AT:        {domain: [Culture], range: [Place]}
+  RELATED_TO:      {domain: ["*"], range: ["*"]}

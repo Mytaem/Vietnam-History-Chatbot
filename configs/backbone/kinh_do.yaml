@@ -1,0 +1,15 @@
+# Kinh đô theo triều đại → quan hệ (Place)-[:CAPITAL_OF]->(Polity)
+kinh_do:
+  - {place: Phong Châu,  polity: Văn Lang,       legendary: true}
+  - {place: Cổ Loa,      polity: Âu Lạc}
+  - {place: Cổ Loa,      polity: Nhà Ngô}
+  - {place: Hoa Lư,      polity: Nhà Đinh}
+  - {place: Hoa Lư,      polity: Nhà Tiền Lê}
+  - {place: Thăng Long,  polity: Nhà Lý,         start: 1010}
+  - {place: Thăng Long,  polity: Nhà Trần}
+  - {place: Tây Đô,      polity: Nhà Hồ}
+  - {place: Thăng Long,  polity: Nhà Lê sơ,      note: "gọi là Đông Kinh"}
+  - {place: Thăng Long,  polity: Nhà Mạc}
+  - {place: Thăng Long,  polity: Nhà Lê trung hưng}
+  - {place: Phú Xuân,    polity: Nhà Tây Sơn,    note: "thời Quang Trung"}
+  - {place: Huế,         polity: Nhà Nguyễn}

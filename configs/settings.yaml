@@ -1,0 +1,85 @@
+# Cấu hình chính - xem PLAN.md Mục 7
+llm:
+  host: http://localhost:11434          # ghi đè bằng OLLAMA_HOST trong .env
+  chat_model: qwen3:4b-instruct-2507
+  extract_model: qwen3:4b-instruct-2507
+  embed_model: bge-m3
+  embed_dim: 1024
+  num_ctx: 8192
+  temperature: 0.0
+  timeout_s: 120
+  workers: 2
+  max_retries: 2
+
+neo4j:
+  uri: bolt://localhost:7687            # ghi đè bằng NEO4J_URI
+  user: neo4j
+  database: neo4j
+
+paths:
+  data_dir: data
+  cache_dir: data/cache/llm
+  reports_dir: data/reports
+
+scope:
+  max_year: 1945
+  periods_file: configs/periods.yaml
+  backbone_dir: configs/backbone
+
+ingest:
+  lang: vi
+  expand_hops: 1
+  category_depth: 2
+  wikidata_batch: 50
+  user_agent: "hgr-history-graphrag/0.1 (student project)"
+  max_articles: {mini: 16, core: 280, full: 1000, era: 450, period: 80}
+  # người, trận, chiến tranh, triều đại, nhà nước cũ, sự kiện, khởi nghĩa,
+  # hiệp ước, đảng phái, tác phẩm, văn hóa khảo cổ, di chỉ khảo cổ, khu dân cư
+  # TODO(M3): kiểm tra lại từng QID bằng wbgetentities
+  allowed_p31: [Q5, Q178561, Q198, Q164950, Q3024240, Q1190554, Q124734,
+                Q131569, Q7278, Q47461344, Q465299, Q839954, Q486972]
+
+chunk:
+  target_tokens: 500
+  overlap_sentences: 1
+  min_tokens: 80
+  drop_post_cutoff: true
+  drop_sections: [Tham khảo, Chú thích, Xem thêm, Liên kết ngoài, Đọc thêm, Ghi chú]
+
+extract:
+  prompt_version: v1
+  gleaning: false
+  min_confidence: 0.6
+  evidence_ratio: 90
+  max_chunks_b: 3
+  few_shot_by_era: true
+
+resolve:
+  fuzzy_threshold: 92
+  event_year_tolerance: 1
+  period_blocking: adjacent        # same | adjacent | none
+
+retrieval:
+  chunk_k: 20
+  hops: 2
+  max_degree: p99                  # số cố định hoặc "p99"
+  ppr_alpha: 0.85
+  ppr_top_n: 25
+  top_chunks: 8
+  overview_top_chunks: 12
+  context_max_tokens: 1200
+  rerank: false
+  rerank_model: BAAI/bge-reranker-v2-m3
+  rrf_k: 60
+  evidence_boost: 1.3
+  fusion:                          # [vector, graph, path]
+    factoid:    [0.5, 0.5, 0.0]
+    multihop:   [0.3, 0.7, 0.0]
+    temporal:   [0.4, 0.6, 0.0]
+    relational: [0.2, 0.4, 0.4]
+    comparison: [0.4, 0.6, 0.0]
+    overview:   [0.6, 0.4, 0.0]
+
+api:
+  host: 127.0.0.1
+  port: 8000

@@ -1,0 +1,24 @@
+# Profile mini: 16 bài rải đều 5 thời kỳ + nhánh song song (PLAN.md Mục 7)
+mini:
+  - Văn hóa Đông Sơn
+  - Hùng Vương
+  - An Dương Vương
+  - Hai Bà Trưng
+  - Lý Nam Đế
+  - Ngô Quyền
+  - Trận Bạch Đằng (938)
+  - Chăm Pa
+  - Lý Thường Kiệt
+  - Trần Hưng Đạo
+  - Trận Bạch Đằng (1288)
+  - Lê Lợi
+  - Quang Trung
+  - Gia Long
+  - Phong trào Cần Vương
+  - Cách mạng Tháng Tám
+
+# Bổ sung thủ công (áp dụng cho mọi profile), dạng {title, period}
+extra: []
+
+# Không bao giờ thu thập
+blocklist: []

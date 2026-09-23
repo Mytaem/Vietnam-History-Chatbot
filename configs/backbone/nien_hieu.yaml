@@ -1,0 +1,16 @@
+# Niên hiệu → năm bắt đầu (dùng cho normalize: "niên hiệu Hồng Đức thứ 14" → 1470 + 14 - 1 = 1483)
+# TODO(M2): bổ sung đầy đủ từ Wikipedia "Niên hiệu Việt Nam".
+nien_hieu:
+  - {name: Thái Bình,   start: 970,  monarch: Đinh Tiên Hoàng}
+  - {name: Thuận Thiên, start: 1010, monarch: Lý Thái Tổ}
+  - {name: Thiên Ứng Chính Bình, start: 1232, monarch: Trần Thái Tông}
+  - {name: Thiệu Bảo,   start: 1279, monarch: Trần Nhân Tông}
+  - {name: Trùng Hưng,  start: 1285, monarch: Trần Nhân Tông}
+  - {name: Thuận Thiên, start: 1428, monarch: Lê Thái Tổ}
+  - {name: Quang Thuận, start: 1460, monarch: Lê Thánh Tông}
+  - {name: Hồng Đức,    start: 1470, monarch: Lê Thánh Tông}
+  - {name: Quang Trung, start: 1788, monarch: Nguyễn Huệ}
+  - {name: Gia Long,    start: 1802, monarch: Nguyễn Phúc Ánh}
+  - {name: Minh Mạng,   start: 1820, monarch: Nguyễn Phúc Đảm}
+  - {name: Tự Đức,      start: 1848, monarch: Nguyễn Phúc Hồng Nhậm}
+  - {name: Bảo Đại,     start: 1926, monarch: Nguyễn Phúc Vĩnh Thụy}

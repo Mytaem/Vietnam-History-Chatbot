@@ -1,0 +1,25 @@
+# Địa danh đổi tên → Place.historical_names[{name, start, end}]
+# TODO(M2): đối chiếu lại các mốc năm với Wikipedia (một số mốc là gần đúng).
+dia_danh:
+  - id: ha_noi
+    canonical: Hà Nội
+    names:
+      - {name: Tống Bình, start: 454,  end: 866}
+      - {name: Đại La,    start: 866,  end: 1010}
+      - {name: Thăng Long, start: 1010, end: 1397}
+      - {name: Đông Đô,   start: 1397, end: 1407}
+      - {name: Đông Quan, start: 1408, end: 1430}
+      - {name: Đông Kinh, start: 1430, end: 1527}
+      - {name: Thăng Long, start: 1527, end: 1831}
+      - {name: Hà Nội,    start: 1831, end: null}
+  - id: sai_gon
+    canonical: Sài Gòn
+    names:
+      - {name: Prey Nokor, start: null, end: 1698}
+      - {name: Gia Định,   start: 1698, end: 1862}
+      - {name: Sài Gòn,    start: 1862, end: null}
+  - id: hue
+    canonical: Huế
+    names:
+      - {name: Phú Xuân, start: 1687, end: 1802}
+      - {name: Huế,      start: 1802, end: null}

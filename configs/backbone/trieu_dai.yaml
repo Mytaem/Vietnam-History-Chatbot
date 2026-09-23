@@ -1,0 +1,14 @@
+# Triều đại (Polity) → IN_PERIOD. Danh sách vua lấy từ Wikidata rồi đối chiếu file này.
+trieu_dai:
+  - {name: Nhà Ngô,           start: 939,  end: 965,  period: ngo}
+  - {name: Nhà Đinh,          start: 968,  end: 980,  period: dinh}
+  - {name: Nhà Tiền Lê,       start: 980,  end: 1009, period: tienle}
+  - {name: Nhà Lý,            start: 1009, end: 1225, period: ly}
+  - {name: Nhà Trần,          start: 1225, end: 1400, period: tran}
+  - {name: Nhà Hồ,            start: 1400, end: 1407, period: ho}
+  - {name: Nhà Hậu Trần,      start: 1407, end: 1414, period: thuocminh}
+  - {name: Nhà Lê sơ,         start: 1428, end: 1527, period: leso}
+  - {name: Nhà Mạc,           start: 1527, end: 1677, period: nambactrieu}
+  - {name: Nhà Lê trung hưng, start: 1533, end: 1789, period: trinhnguyen}
+  - {name: Nhà Tây Sơn,       start: 1778, end: 1802, period: tayson}
+  - {name: Nhà Nguyễn,        start: 1802, end: 1945, period: nguyen_doclap}

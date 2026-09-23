@@ -1,0 +1,138 @@
+# Phân kỳ lịch sử Việt Nam (tiền sử → 31/12/1945) - xem PLAN.md Mục 2
+# 5 era, 29 period + 3 nhánh song song. TCN = số âm. disputed=true → có alt_start/alt_end.
+# TODO(M2): bổ sung aliases, seed_titles, seed_categories, role_vocab đầy đủ; kiểm tra tiêu đề qua API.
+
+eras:
+  - id: tiensu
+    name: Tiền sử và sơ sử
+    aliases: [thời tiền sử, thời sơ sử, thời nguyên thủy]
+    start: -40000
+    end: -700
+    color: "#9e9e9e"
+    periods:
+      - {id: paleolithic,  name: Thời đồ đá cũ, start: -40000, end: -10000, tier_a_quota: 3,
+         seed_titles: [Văn hóa Sơn Vi, Núi Đọ]}
+      - {id: neolithic,    name: Thời đồ đá giữa và đồ đá mới, start: -18000, end: -2000, tier_a_quota: 4,
+         seed_titles: [Văn hóa Hòa Bình, Văn hóa Bắc Sơn, Văn hóa Quỳnh Văn, Văn hóa Đa Bút]}
+      - {id: bronze_early, name: Thời kim khí sớm (tiền Đông Sơn), start: -2000, end: -700, tier_a_quota: 4,
+         seed_titles: [Văn hóa Phùng Nguyên, Văn hóa Đồng Đậu, Văn hóa Gò Mun, Văn hóa Sa Huỳnh]}
+
+  - id: dungnuoc
+    name: Dựng nước buổi đầu
+    aliases: [thời dựng nước, thời Hùng Vương, thời đại Hùng Vương]
+    start: -2879
+    end: -179
+    color: "#c9a227"
+    periods:
+      - {id: vanlang, name: Hồng Bàng – Văn Lang, start: -2879, end: -258, legendary: true, tier_a_quota: 8,
+         aliases: [thời Văn Lang, nhà Hồng Bàng, thời các vua Hùng],
+         seed_titles: [Hồng Bàng thị, Hùng Vương, Văn Lang, Văn hóa Đông Sơn, Kinh Dương Vương, Lạc Long Quân]}
+      - {id: aulac, name: Âu Lạc – An Dương Vương, start: -257, end: -179, disputed: true, alt_end: -208, tier_a_quota: 6,
+         aliases: [thời Âu Lạc, nhà Thục],
+         seed_titles: [Âu Lạc, An Dương Vương, Cổ Loa, Cao Lỗ]}
+
+  - id: bacthuoc
+    name: Bắc thuộc và đấu tranh giành độc lập
+    aliases: [thời Bắc thuộc, nghìn năm Bắc thuộc, thời kỳ Bắc thuộc, thời kỳ đô hộ phương Bắc]
+    start: -179
+    end: 938
+    color: "#8c6d46"
+    periods:
+      - {id: bacthuoc_1, name: Bắc thuộc lần 1, start: -179, end: 40, disputed: true, alt_start: -111, tier_a_quota: 6,
+         aliases: [Bắc thuộc lần thứ nhất], seed_titles: [Bắc thuộc lần thứ nhất, Nhà Triệu, Nam Việt, Triệu Đà]}
+      - {id: haibatrung, name: Khởi nghĩa Hai Bà Trưng, start: 40, end: 43, tier_a_quota: 5,
+         seed_titles: [Hai Bà Trưng, Khởi nghĩa Hai Bà Trưng, Mã Viện]}
+      - {id: bacthuoc_2, name: Bắc thuộc lần 2, start: 43, end: 544, tier_a_quota: 8,
+         aliases: [Bắc thuộc lần thứ hai],
+         seed_titles: [Bắc thuộc lần thứ hai, Sĩ Nhiếp, Bà Triệu, Lý Trường Nhân],
+         role_vocab: [thái thú, thứ sử, đô hộ, thủ lĩnh khởi nghĩa],
+         polities: [Đông Hán, Đông Ngô, Nhà Tấn, Lưu Tống, Nam Tề, Nhà Lương]}
+      - {id: vanxuan, name: Nhà Tiền Lý – nước Vạn Xuân, start: 544, end: 602, tier_a_quota: 6,
+         aliases: [nhà Tiền Lý, nước Vạn Xuân], seed_titles: [Nhà Tiền Lý, Lý Nam Đế, Triệu Việt Vương, Vạn Xuân]}
+      - {id: bacthuoc_3, name: Bắc thuộc lần 3, start: 602, end: 905, tier_a_quota: 8,
+         aliases: [Bắc thuộc lần thứ ba, thời thuộc Đường],
+         seed_titles: [Bắc thuộc lần thứ ba, An Nam đô hộ phủ, Mai Thúc Loan, Phùng Hưng]}
+      - {id: tuchu, name: Thời kỳ tự chủ, start: 905, end: 938, tier_a_quota: 6,
+         aliases: [thời tự chủ, thời họ Khúc], seed_titles: [Khúc Thừa Dụ, Khúc Hạo, Dương Đình Nghệ, Kiều Công Tiễn]}
+
+  - id: songsong
+    name: Các quốc gia cổ miền Trung và miền Nam
+    aliases: [Chăm Pa, Phù Nam, Chân Lạp]
+    start: 1
+    end: 1832
+    color: "#5b8e7d"
+    parallel: true
+    periods:
+      - {id: phunam, name: Vương quốc Phù Nam – văn hóa Óc Eo, start: 1, end: 650, tier_a_quota: 5, parallel: true,
+         seed_titles: [Phù Nam, Văn hóa Óc Eo]}
+      - {id: champa, name: Lâm Ấp – Chăm Pa, start: 192, end: 1832, tier_a_quota: 10, parallel: true,
+         aliases: [Lâm Ấp, Chiêm Thành, Champa], seed_titles: [Chăm Pa, Lâm Ấp, Mỹ Sơn, Chế Bồng Nga]}
+      - {id: chanlap_nambo, name: Chân Lạp và khai phá Nam Bộ, start: 650, end: 1757, tier_a_quota: 5, parallel: true,
+         aliases: [Thủy Chân Lạp, khai phá Nam Bộ], seed_titles: [Chân Lạp, Mạc Cửu, Nguyễn Hữu Cảnh]}
+
+  - id: phongkien
+    name: Phong kiến độc lập
+    aliases: [thời phong kiến, thời kỳ phong kiến độc lập, thời quân chủ]
+    start: 938
+    end: 1858
+    color: "#b5452f"
+    periods:
+      - {id: ngo, name: Nhà Ngô và Loạn 12 sứ quân, start: 938, end: 968, tier_a_quota: 7,
+         aliases: [nhà Ngô, loạn 12 sứ quân], seed_titles: [Nhà Ngô, Ngô Quyền, Trận Bạch Đằng (938), Loạn 12 sứ quân]}
+      - {id: dinh, name: Nhà Đinh – Đại Cồ Việt, start: 968, end: 980, tier_a_quota: 6,
+         aliases: [nhà Đinh], seed_titles: [Nhà Đinh, Đinh Tiên Hoàng, Hoa Lư, Đại Cồ Việt]}
+      - {id: tienle, name: Nhà Tiền Lê, start: 980, end: 1009, tier_a_quota: 6,
+         aliases: [nhà Tiền Lê], seed_titles: [Nhà Tiền Lê, Lê Hoàn, "Chiến tranh Tống – Việt, 981"]}
+      - {id: ly, name: Nhà Lý, start: 1009, end: 1225, tier_a_quota: 12,
+         aliases: [nhà Lý, thời Lý, triều Lý, nhà Hậu Lý],
+         seed_titles: [Nhà Lý, Lý Thái Tổ, Chiếu dời đô, Lý Thường Kiệt, Trận Như Nguyệt, Nam quốc sơn hà]}
+      - {id: tran, name: Nhà Trần, start: 1225, end: 1400, tier_a_quota: 14,
+         aliases: [nhà Trần, thời Trần, triều Trần],
+         seed_titles: [Nhà Trần, Trần Hưng Đạo, Chiến tranh Nguyên Mông – Đại Việt, Trận Bạch Đằng (1288), Trần Nhân Tông, Hịch tướng sĩ]}
+      - {id: ho, name: Nhà Hồ – Đại Ngu, start: 1400, end: 1407, tier_a_quota: 5,
+         aliases: [nhà Hồ, thời Hồ], seed_titles: [Nhà Hồ, Hồ Quý Ly, Đại Ngu, Thành nhà Hồ]}
+      - {id: thuocminh, name: Thuộc Minh – Hậu Trần – Khởi nghĩa Lam Sơn, start: 1407, end: 1427, tier_a_quota: 10,
+         aliases: [thời thuộc Minh, Bắc thuộc lần 4, khởi nghĩa Lam Sơn, nhà Hậu Trần],
+         seed_titles: [Bắc thuộc lần thứ tư, Nhà Hậu Trần, Khởi nghĩa Lam Sơn, Lê Lợi, Nguyễn Trãi, Trận Chi Lăng – Xương Giang]}
+      - {id: leso, name: Lê sơ, start: 1428, end: 1527, tier_a_quota: 10,
+         aliases: [nhà Lê sơ, thời Lê sơ, nhà Hậu Lê],
+         seed_titles: [Nhà Lê sơ, Lê Thánh Tông, Bộ luật Hồng Đức, Bình Ngô đại cáo, Đại Việt sử ký toàn thư]}
+      - {id: nambactrieu, name: Nam – Bắc triều (Mạc và Lê trung hưng), start: 1527, end: 1592, tier_a_quota: 8,
+         aliases: [Nam Bắc triều, nhà Mạc, chiến tranh Lê – Mạc],
+         seed_titles: [Nam – Bắc triều (Việt Nam), Nhà Mạc, Mạc Đăng Dung, Chiến tranh Lê – Mạc]}
+      - {id: trinhnguyen, name: Trịnh – Nguyễn phân tranh, start: 1627, end: 1777, tier_a_quota: 10,
+         aliases: [Trịnh Nguyễn phân tranh, Đàng Ngoài, Đàng Trong, thời Lê trung hưng],
+         seed_titles: [Trịnh – Nguyễn phân tranh, Chúa Trịnh, Chúa Nguyễn, Đào Duy Từ, Hội An]}
+      - {id: tayson, name: Tây Sơn, start: 1771, end: 1802, tier_a_quota: 10,
+         aliases: [nhà Tây Sơn, phong trào Tây Sơn, thời Tây Sơn],
+         seed_titles: [Nhà Tây Sơn, Quang Trung, Trận Rạch Gầm – Xoài Mút, Trận Ngọc Hồi – Đống Đa]}
+      - {id: nguyen_doclap, name: Nhà Nguyễn thời độc lập, start: 1802, end: 1858, tier_a_quota: 12,
+         aliases: [nhà Nguyễn, triều Nguyễn, thời Nguyễn],
+         seed_titles: [Nhà Nguyễn, Gia Long, Minh Mạng, Tự Đức, Hoàng Việt luật lệ]}
+
+  - id: candai
+    name: Cận đại – Pháp thuộc và cách mạng
+    aliases: [thời cận đại, thời Pháp thuộc, thời kỳ Pháp thuộc, thời thuộc Pháp]
+    start: 1858
+    end: 1945
+    color: "#2f5d8a"
+    periods:
+      - {id: phap_xamluoc, name: Pháp xâm lược, start: 1858, end: 1884, tier_a_quota: 10,
+         aliases: [Pháp xâm lược Việt Nam],
+         seed_titles: [Chiến tranh Pháp – Đại Nam, Hòa ước Nhâm Tuất, Hòa ước Giáp Tuất, Hòa ước Patenôtre, Trương Định]}
+      - {id: canvuong, name: Phong trào Cần Vương, start: 1885, end: 1896, tier_a_quota: 10,
+         aliases: [Cần Vương, phong trào Cần Vương],
+         seed_titles: [Phong trào Cần Vương, Hàm Nghi, Tôn Thất Thuyết, Phan Đình Phùng, Khởi nghĩa Yên Thế]}
+      - {id: dau_tk20, name: Phong trào yêu nước đầu thế kỷ XX, start: 1897, end: 1918, tier_a_quota: 10,
+         aliases: [đầu thế kỷ XX, khai thác thuộc địa lần thứ nhất],
+         seed_titles: [Phan Bội Châu, Phong trào Đông Du, Phan Châu Trinh, Đông Kinh Nghĩa Thục, Việt Nam Quang phục Hội]}
+      - {id: "1919_1930", name: Phong trào dân tộc 1919–1930, start: 1919, end: 1930, tier_a_quota: 10,
+         aliases: [khai thác thuộc địa lần thứ hai],
+         seed_titles: [Hội Việt Nam Cách mạng Thanh niên, Việt Nam Quốc dân Đảng, Khởi nghĩa Yên Bái, Đảng Cộng sản Việt Nam]}
+      - {id: "1930_1939", name: Cao trào cách mạng 1930–1939, start: 1930, end: 1939, tier_a_quota: 8,
+         aliases: [Xô viết Nghệ Tĩnh, Mặt trận Dân chủ],
+         seed_titles: [Xô viết Nghệ Tĩnh, Trần Phú, Mặt trận Dân chủ Đông Dương]}
+      - {id: "1939_1945", name: Chiến tranh thế giới II và Cách mạng Tháng Tám, start: 1939, end: 1945, tier_a_quota: 14,
+         aliases: [Cách mạng Tháng Tám, 1939–1945],
+         seed_titles: [Việt Minh, Nhật đảo chính Pháp tại Đông Dương, Đế quốc Việt Nam, "Nạn đói năm Ất Dậu, 1944–1945",
+                       Cách mạng Tháng Tám, Tuyên ngôn độc lập (Việt Nam Dân chủ Cộng hòa), Nam Bộ kháng chiến]}
