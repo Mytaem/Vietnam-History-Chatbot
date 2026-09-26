@@ -1,4 +1,7 @@
 """CLI `hgr` - mỗi bước pipeline là một lệnh (PLAN.md Mục 6)."""
+import json
+from pathlib import Path
+
 import typer
 from pydantic import BaseModel
 
@@ -124,22 +127,102 @@ def periods(check: bool = typer.Option(False, "--check", help="Kiểm tra khoả
         typer.secho("\n[OK] Không có khoảng năm nào bị hở trên trục chính.", fg=typer.colors.GREEN)
 
 
+def _data_dir() -> Path:
+    from hgr.config import get_settings
+
+    settings = get_settings()
+    return Path(settings.project_root) / settings.paths.data_dir
+
+
+def _read_jsonl(path: Path):
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+
 @app.command()
 def ingest(profile: str = typer.Option("mini", help=PROFILE_HELP)):
     """Thu thập bài Wikipedia + Wikidata → data/raw/<period>/articles.jsonl. (M3)"""
-    _todo("ingest", "M3")
+    from hgr.ingest.collector import collect
+
+    summary = collect(profile)
+    for period_id, count in summary["articles"].items():
+        typer.echo(f"  {period_id:<14} {count} bài")
+    total = sum(summary["articles"].values())
+    _ok(f"{total} bài ({summary['tier_a']} tier A) → data/raw/<period>/articles.jsonl")
+    if summary["missing_seeds"]:
+        typer.secho(
+            f"[WARN] {len(summary['missing_seeds'])} tiêu đề seed không tồn tại (xem data/reports/missing_seeds.txt):",
+            fg=typer.colors.YELLOW,
+        )
+        for title, period_id in summary["missing_seeds"]:
+            typer.echo(f"  {title}  ({period_id or '-'})")
+    for title in summary["dropped_after_cutoff"]:
+        typer.secho(f"[INFO] Bỏ bài bắt đầu sau mốc cắt: {title}", fg=typer.colors.CYAN)
+    for title in summary["unassigned"]:
+        typer.secho(f"[WARN] Không gán được giai đoạn: {title}", fg=typer.colors.YELLOW)
 
 
 @app.command()
 def parse():
     """wikitext → sections, infobox, links. (M3)"""
-    _todo("parse", "M3")
+    from hgr.config import get_settings
+    from hgr.process.parser import parse_article
+
+    settings = get_settings()
+    data = _data_dir()
+    raw_files = sorted((data / "raw").glob("*/articles.jsonl"))
+    if not raw_files:
+        _fail("Chưa có data/raw/<period>/articles.jsonl, hãy chạy 'hgr ingest' trước.")
+        raise typer.Exit(1)
+    out = data / "processed" / "articles.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    count = 0
+    with open(out, "w", encoding="utf-8") as f:
+        for path in raw_files:
+            for article in _read_jsonl(path):
+                wikitext = article.pop("wikitext", None) or ""
+                article.update(parse_article(wikitext, settings.chunk.drop_sections))
+                f.write(json.dumps(article, ensure_ascii=False) + "\n")
+                count += 1
+    _ok(f"{count} bài → {out.relative_to(data.parent)}")
 
 
 @app.command()
 def chunk():
     """Chia chunk theo section/câu, gắn header, cutoff 1945. (M3)"""
-    _todo("chunk", "M3")
+    from hgr.config import get_settings
+    from hgr.process.chunker import chunk_article
+
+    settings = get_settings()
+    data = _data_dir()
+    source = data / "processed" / "articles.jsonl"
+    if not source.exists():
+        _fail("Chưa có data/processed/articles.jsonl, hãy chạy 'hgr parse' trước.")
+        raise typer.Exit(1)
+    out = data / "processed" / "chunks.jsonl"
+    per_period: dict[str, int] = {}
+    total_tokens = 0
+    with open(out, "w", encoding="utf-8") as f:
+        for article in _read_jsonl(source):
+            chunks = chunk_article(
+                article,
+                target_tokens=settings.chunk.target_tokens,
+                overlap_sentences=settings.chunk.overlap_sentences,
+                min_tokens=settings.chunk.min_tokens,
+                max_year=settings.scope.max_year,
+                drop_post_cutoff=settings.chunk.drop_post_cutoff,
+            )
+            for c in chunks:
+                f.write(json.dumps(c, ensure_ascii=False) + "\n")
+                total_tokens += c["tokens"]
+            per_period[article["period_id"]] = per_period.get(article["period_id"], 0) + len(chunks)
+    total = sum(per_period.values())
+    for period_id, count in sorted(per_period.items()):
+        typer.echo(f"  {period_id:<14} {count} chunk")
+    avg = total_tokens // total if total else 0
+    _ok(f"{total} chunk (trung bình ~{avg} token) → {out.relative_to(data.parent)}")
 
 
 @app.command()

@@ -44,14 +44,14 @@ eras:
          seed_titles: [Hai Bà Trưng, Khởi nghĩa Hai Bà Trưng, Mã Viện]}
       - {id: bacthuoc_2, name: Bắc thuộc lần 2, start: 43, end: 544, tier_a_quota: 8,
          aliases: [Bắc thuộc lần thứ hai],
-         seed_titles: [Bắc thuộc lần thứ hai, Sĩ Nhiếp, Bà Triệu, Lý Trường Nhân],
+         seed_titles: [Thời kỳ Bắc thuộc lần thứ hai, Sĩ Nhiếp, Bà Triệu, Lý Trường Nhân],
          role_vocab: [thái thú, thứ sử, đô hộ, thủ lĩnh khởi nghĩa],
          polities: [Đông Hán, Đông Ngô, Nhà Tấn, Lưu Tống, Nam Tề, Nhà Lương]}
       - {id: vanxuan, name: Nhà Tiền Lý – nước Vạn Xuân, start: 544, end: 602, tier_a_quota: 6,
          aliases: [nhà Tiền Lý, nước Vạn Xuân], seed_titles: [Nhà Tiền Lý, Lý Nam Đế, Triệu Việt Vương, Vạn Xuân]}
       - {id: bacthuoc_3, name: Bắc thuộc lần 3, start: 602, end: 905, tier_a_quota: 8,
          aliases: [Bắc thuộc lần thứ ba, thời thuộc Đường],
-         seed_titles: [Bắc thuộc lần thứ ba, An Nam đô hộ phủ, Mai Thúc Loan, Phùng Hưng]}
+         seed_titles: [Thời kỳ Bắc thuộc lần thứ ba, An Nam đô hộ phủ, Mai Thúc Loan, Phùng Hưng]}
       - {id: tuchu, name: Thời kỳ tự chủ, start: 905, end: 938, tier_a_quota: 6,
          aliases: [thời tự chủ, thời họ Khúc], seed_titles: [Khúc Thừa Dụ, Khúc Hạo, Dương Đình Nghệ, Kiều Công Tiễn]}
 
@@ -82,7 +82,7 @@ eras:
       - {id: dinh, name: Nhà Đinh – Đại Cồ Việt, start: 968, end: 980, tier_a_quota: 6,
          aliases: [nhà Đinh], seed_titles: [Nhà Đinh, Đinh Tiên Hoàng, Hoa Lư, Đại Cồ Việt]}
       - {id: tienle, name: Nhà Tiền Lê, start: 980, end: 1009, tier_a_quota: 6,
-         aliases: [nhà Tiền Lê], seed_titles: [Nhà Tiền Lê, Lê Hoàn, "Chiến tranh Tống – Việt, 981"]}
+         aliases: [nhà Tiền Lê], seed_titles: [Nhà Tiền Lê, Lê Hoàn, Chiến tranh Tống–Việt lần thứ nhất]}
       - {id: ly, name: Nhà Lý, start: 1009, end: 1225, tier_a_quota: 12,
          aliases: [nhà Lý, thời Lý, triều Lý, nhà Hậu Lý],
          seed_titles: [Nhà Lý, Lý Thái Tổ, Chiếu dời đô, Lý Thường Kiệt, Trận Như Nguyệt, Nam quốc sơn hà]}
@@ -100,7 +100,8 @@ eras:
       - {id: nambactrieu, name: Nam – Bắc triều (Mạc và Lê trung hưng), start: 1527, end: 1592, tier_a_quota: 8,
          aliases: [Nam Bắc triều, nhà Mạc, chiến tranh Lê – Mạc],
          seed_titles: [Nam – Bắc triều (Việt Nam), Nhà Mạc, Mạc Đăng Dung, Chiến tranh Lê – Mạc]}
-      - {id: trinhnguyen, name: Trịnh – Nguyễn phân tranh, start: 1627, end: 1777, tier_a_quota: 10,
+      # Bắt đầu 1593 (Mạc mất Thăng Long, Lê trung hưng) chứ không phải 1627 (trận đầu), để trục chính không hở.
+      - {id: trinhnguyen, name: Trịnh – Nguyễn phân tranh, start: 1593, end: 1777, tier_a_quota: 10,
          aliases: [Trịnh Nguyễn phân tranh, Đàng Ngoài, Đàng Trong, thời Lê trung hưng],
          seed_titles: [Trịnh – Nguyễn phân tranh, Chúa Trịnh, Chúa Nguyễn, Đào Duy Từ, Hội An]}
       - {id: tayson, name: Tây Sơn, start: 1771, end: 1802, tier_a_quota: 10,

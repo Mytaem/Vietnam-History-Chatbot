@@ -31,7 +31,8 @@ ingest:
   expand_hops: 1
   category_depth: 2
   wikidata_batch: 50
-  user_agent: "hgr-history-graphrag/0.1 (student project)"
+  # Wikimedia chặn (403) User-Agent không có thông tin liên hệ: https://w.wiki/4wJS
+  user_agent: "hgr-history-graphrag/0.1 (https://github.com/Mytaem/Vietnam-History-Chatbot)"
   max_articles: {mini: 16, core: 280, full: 1000, era: 450, period: 80}
   # người, trận, chiến tranh, triều đại, nhà nước cũ, sự kiện, khởi nghĩa,
   # hiệp ước, đảng phái, tác phẩm, văn hóa khảo cổ, di chỉ khảo cổ, khu dân cư

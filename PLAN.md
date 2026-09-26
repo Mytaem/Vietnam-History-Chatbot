@@ -131,7 +131,7 @@ Các giai đoạn này **không nằm trên trục thời gian chính**. Chúng 
 | 18 | `thuocminh` | Thuộc Minh, nhà Hậu Trần, khởi nghĩa Lam Sơn | 1407 → 1427 | Giản Định Đế, Trùng Quang Đế, Đặng Dung; Lê Lợi, Nguyễn Trãi, Hội thề Lũng Nhai, trận Tốt Động – Chúc Động, Chi Lăng – Xương Giang, Hội thề Đông Quan | 10 |
 | 19 | `leso` | Lê sơ | 1428 → 1527 | Lê Thái Tổ, Bình Ngô đại cáo, Lê Thánh Tông, Luật Hồng Đức, Hội Tao Đàn, Đại Việt sử ký toàn thư, chinh phạt Chăm Pa (1471) | 10 |
 | 20 | `nambactrieu` | Nam – Bắc triều (Mạc và Lê trung hưng) | 1527 → 1592 | Mạc Đăng Dung, Nguyễn Kim, Trịnh Kiểm, chiến tranh Lê – Mạc; nhà Mạc giữ Cao Bằng đến 1677 | 8 |
-| 21 | `trinhnguyen` | Trịnh – Nguyễn phân tranh (Đàng Ngoài – Đàng Trong) | 1627 → 1777 | Chúa Trịnh, chúa Nguyễn, sông Gianh, 7 lần giao chiến (1627–1672), Đào Duy Từ, Hội An, Phố Hiến, chữ Quốc ngữ (Alexandre de Rhodes) | 10 |
+| 21 | `trinhnguyen` | Trịnh – Nguyễn phân tranh (Đàng Ngoài – Đàng Trong) | 1593 → 1777 (tính cả giai đoạn Lê trung hưng 1593–1626 trước trận đầu năm 1627) | Chúa Trịnh, chúa Nguyễn, sông Gianh, 7 lần giao chiến (1627–1672), Đào Duy Từ, Hội An, Phố Hiến, chữ Quốc ngữ (Alexandre de Rhodes) | 10 |
 | 22 | `tayson` | Tây Sơn | 1771 → 1802 | Nguyễn Nhạc, Nguyễn Huệ (Quang Trung), Nguyễn Lữ; trận Rạch Gầm – Xoài Mút (1785), Ngọc Hồi – Đống Đa (1789), Chiếu Cần học, Ngô Thì Nhậm | 10 |
 | 23 | `nguyen_doclap` | Nhà Nguyễn thời độc lập | 1802 → 1858 | Nguyễn Phúc Ánh (Gia Long), Minh Mạng, Thiệu Trị, Tự Đức; kinh đô Huế; quốc hiệu Việt Nam (1804) và Đại Nam (1839); Hoàng Việt luật lệ, Lê Văn Duyệt | 12 |
 
