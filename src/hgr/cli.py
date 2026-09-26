@@ -90,10 +90,38 @@ def doctor():
     typer.secho("Tất cả kiểm tra đều OK.", fg=typer.colors.GREEN, bold=True)
 
 
+def _fmt_year(y: int) -> str:
+    return f"{-y} TCN" if y < 0 else str(y)
+
+
 @app.command()
 def periods(check: bool = typer.Option(False, "--check", help="Kiểm tra khoảng năm hở/chồng")):
     """In cây era → period từ configs/periods.yaml. (M2)"""
-    _todo("periods", "M2")
+    from hgr.periods import find_gaps, load_eras
+
+    for era in load_eras():
+        tag = " [song song]" if era.parallel else ""
+        typer.echo(f"{era.id:<12} {era.name}{tag} ({_fmt_year(era.start)} – {_fmt_year(era.end)})")
+        for period in era.periods:
+            flags = []
+            if period.legendary:
+                flags.append("truyền thuyết")
+            if period.disputed:
+                flags.append("tranh luận")
+            flag_str = f" [{', '.join(flags)}]" if flags else ""
+            typer.echo(
+                f"  {period.id:<14} {period.name}{flag_str} "
+                f"({_fmt_year(period.start)} – {_fmt_year(period.end)}) A={period.tier_a_quota}"
+            )
+
+    if check:
+        gaps = find_gaps()
+        if gaps:
+            typer.secho(f"\n[FAIL] Phát hiện {len(gaps)} khoảng năm bị hở trên trục chính:", fg=typer.colors.RED)
+            for start, end in gaps:
+                typer.secho(f"  {_fmt_year(start)} – {_fmt_year(end)} không thuộc period nào", fg=typer.colors.RED)
+            raise typer.Exit(1)
+        typer.secho("\n[OK] Không có khoảng năm nào bị hở trên trục chính.", fg=typer.colors.GREEN)
 
 
 @app.command()
