@@ -1,16 +1,146 @@
-# Niên hiệu → năm bắt đầu (dùng cho normalize: "niên hiệu Hồng Đức thứ 14" → 1470 + 14 - 1 = 1483)
-# TODO(M2): bổ sung đầy đủ từ Wikipedia "Niên hiệu Việt Nam".
+# Niên hiệu → năm bắt đầu (normalize: "niên hiệu Hồng Đức thứ 14" → 1470 + 14 - 1 = 1483).
+# Sinh tự động từ bài Wikipedia "Niên hiệu Việt Nam" (bảng tra của Viện Hán Nôm).
 nien_hieu:
-  - {name: Thái Bình,   start: 970,  monarch: Đinh Tiên Hoàng}
-  - {name: Thuận Thiên, start: 1010, monarch: Lý Thái Tổ}
-  - {name: Thiên Ứng Chính Bình, start: 1232, monarch: Trần Thái Tông}
-  - {name: Thiệu Bảo,   start: 1279, monarch: Trần Nhân Tông}
-  - {name: Trùng Hưng,  start: 1285, monarch: Trần Nhân Tông}
-  - {name: Thuận Thiên, start: 1428, monarch: Lê Thái Tổ}
-  - {name: Quang Thuận, start: 1460, monarch: Lê Thánh Tông}
-  - {name: Hồng Đức,    start: 1470, monarch: Lê Thánh Tông}
-  - {name: Quang Trung, start: 1788, monarch: Nguyễn Huệ}
-  - {name: Gia Long,    start: 1802, monarch: Nguyễn Phúc Ánh}
-  - {name: Minh Mạng,   start: 1820, monarch: Nguyễn Phúc Đảm}
-  - {name: Tự Đức,      start: 1848, monarch: Nguyễn Phúc Hồng Nhậm}
-  - {name: Bảo Đại,     start: 1926, monarch: Nguyễn Phúc Vĩnh Thụy}
+  - {name: Thiên Đức, start: 544, end: 548, monarch: Lý Nam Đế, dynasty: Nhà Tiền Lý}
+  - {name: Thái Bình, start: 970, end: 980, monarch: Đinh Tiên Hoàng, dynasty: Nhà Đinh}
+  - {name: Thiên Phúc, start: 980, end: 988, monarch: Lê Đại Hành, dynasty: Nhà Tiền Lê}
+  - {name: Hưng Thống, start: 989, end: 993, monarch: Lê Đại Hành, dynasty: Nhà Tiền Lê}
+  - {name: Ứng Thiên, start: 994, end: 1007, monarch: Lê Đại Hành, dynasty: Nhà Tiền Lê}
+  - {name: Cảnh Thụy, start: 1008, end: 1009, monarch: Lê Ngọa Triều, dynasty: Nhà Tiền Lê}
+  - {name: Thuận Thiên, start: 1010, end: 1028, monarch: Lý Thái Tổ, dynasty: Nhà Lý}
+  - {name: Thiên Thành, start: 1028, end: 1034, monarch: Lý Thái Tông, dynasty: Nhà Lý}
+  - {name: Thông Thụy, start: 1034, end: 1039, monarch: Lý Thái Tông, dynasty: Nhà Lý}
+  - {name: Càn Phù Hữu Đạo, start: 1039, end: 1042, monarch: Lý Thái Tông, dynasty: Nhà Lý}
+  - {name: Minh Đạo, start: 1042, end: 1044, monarch: Lý Thái Tông, dynasty: Nhà Lý}
+  - {name: Thiên Cảm Thánh Vũ, start: 1044, end: 1049, monarch: Lý Thái Tông, dynasty: Nhà Lý}
+  - {name: Sùng Hưng Đại Bảo, start: 1049, end: 1054, monarch: Lý Thái Tông, dynasty: Nhà Lý}
+  - {name: Long Thụy Thái Bình, start: 1054, end: 1058, monarch: Lý Thánh Tông, dynasty: Nhà Lý}
+  - {name: Chương Thánh Gia Khánh, start: 1059, end: 1065, monarch: Lý Thánh Tông, dynasty: Nhà Lý}
+  - {name: Long Chương Thiên Tự, start: 1066, end: 1068, monarch: Lý Thánh Tông, dynasty: Nhà Lý}
+  - {name: Thiên Huống Bảo Tượng, start: 1068, end: 1069, monarch: Lý Thánh Tông, dynasty: Nhà Lý}
+  - {name: Thần Vũ, start: 1069, end: 1072, monarch: Lý Thánh Tông, dynasty: Nhà Lý}
+  - {name: Thái Ninh, start: 1072, end: 1076, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Anh Vũ Chiêu Thắng, start: 1076, end: 1084, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Quảng Hựu, start: 1085, end: 1092, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Hội Phong, start: 1092, end: 1100, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Long Phù, start: 1101, end: 1109, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Hội Tường Đại Khánh, start: 1110, end: 1119, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Thiên Phù Duệ Vũ, start: 1120, end: 1126, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Thiên Phù Khánh Thọ, start: 1127, end: 1127, monarch: Lý Nhân Tông, dynasty: Nhà Lý}
+  - {name: Thiên Thuận, start: 1128, end: 1132, monarch: Lý Thần Tông, dynasty: Nhà Lý}
+  - {name: Thiên Chương Bảo Tự, start: 1133, end: 1138, monarch: Lý Thần Tông, dynasty: Nhà Lý}
+  - {name: Thiệu Minh, start: 1138, end: 1140, monarch: Lý Anh Tông, dynasty: Nhà Lý}
+  - {name: Đại Định, start: 1140, end: 1162, monarch: Lý Anh Tông, dynasty: Nhà Lý}
+  - {name: Chính Long Bảo Ứng, start: 1163, end: 1174, monarch: Lý Anh Tông, dynasty: Nhà Lý}
+  - {name: Thiên Cảm Chí Bảo, start: 1174, end: 1175, monarch: Lý Anh Tông, dynasty: Nhà Lý}
+  - {name: Trinh Phù, start: 1176, end: 1186, monarch: Lý Cao Tông, dynasty: Nhà Lý}
+  - {name: Thiên Tư Gia Thụy, start: 1186, end: 1202, monarch: Lý Cao Tông, dynasty: Nhà Lý}
+  - {name: Thiên Gia Bảo Hựu, start: 1202, end: 1205, monarch: Lý Cao Tông, dynasty: Nhà Lý}
+  - {name: Trị Bình Long Ứng, start: 1205, end: 1210, monarch: Lý Cao Tông, dynasty: Nhà Lý}
+  - {name: Kiến Gia, start: 1211, end: 1224, monarch: Lý Huệ Tông, dynasty: Nhà Lý}
+  - {name: Càn Ninh, start: 1211, end: 1216, monarch: Lý Nguyên vương, dynasty: Nhà Lý}
+  - {name: Thiên Chương Hữu Đạo, start: 1224, end: 1225, monarch: Lý Chiêu Hoàng, dynasty: Nhà Lý}
+  - {name: Kiến Trung, start: 1225, end: 1232, monarch: Trần Thái Tông, dynasty: Nhà Trần}
+  - {name: Thiên Ứng Chính Bình, start: 1232, end: 1251, monarch: Trần Thái Tông, dynasty: Nhà Trần}
+  - {name: Nguyên Phong, start: 1251, end: 1258, monarch: Trần Thái Tông, dynasty: Nhà Trần}
+  - {name: Thiệu Long, start: 1258, end: 1272, monarch: Trần Thánh Tông, dynasty: Nhà Trần}
+  - {name: Bảo Phù, start: 1273, end: 1278, monarch: Trần Thánh Tông, dynasty: Nhà Trần}
+  - {name: Thiệu Bảo, start: 1279, end: 1285, monarch: Trần Nhân Tông, dynasty: Nhà Trần}
+  - {name: Trùng Hưng, start: 1285, end: 1293, monarch: Trần Nhân Tông, dynasty: Nhà Trần}
+  - {name: Hưng Long, start: 1293, end: 1314, monarch: Trần Anh Tông, dynasty: Nhà Trần}
+  - {name: Đại Khánh, start: 1314, end: 1323, monarch: Trần Minh Tông, dynasty: Nhà Trần}
+  - {name: Khai Thái, start: 1324, end: 1329, monarch: Trần Minh Tông, dynasty: Nhà Trần}
+  - {name: Khai Hựu, start: 1329, end: 1341, monarch: Trần Hiến Tông, dynasty: Nhà Trần}
+  - {name: Thiệu Phong, start: 1341, end: 1357, monarch: Trần Dụ Tông, dynasty: Nhà Trần}
+  - {name: Đại Trị, start: 1358, end: 1369, monarch: Trần Dụ Tông, dynasty: Nhà Trần}
+  - {name: Đại Định, start: 1369, end: 1370, monarch: Dương Nhật Lễ, dynasty: Nhà Trần}
+  - {name: Thiệu Khánh, start: 1370, end: 1372, monarch: Trần Nghệ Tông, dynasty: Nhà Trần}
+  - {name: Long Khánh, start: 1372, end: 1377, monarch: Trần Duệ Tông, dynasty: Nhà Trần}
+  - {name: Xương Phù, start: 1377, end: 1388, monarch: Trần Phế Đế, dynasty: Nhà Trần}
+  - {name: Quang Thái, start: 1388, end: 1398, monarch: Trần Thuận Tông, dynasty: Nhà Trần}
+  - {name: Kiến Tân, start: 1398, end: 1400, monarch: Trần Thiếu Đế, dynasty: Nhà Trần}
+  - {name: Thánh Nguyên, start: 1400, end: 1400, monarch: Hồ Quý Ly, dynasty: Nhà Hồ}
+  - {name: Thiệu Thành, start: 1401, end: 1402, monarch: Hồ Hán Thương, dynasty: Nhà Hồ}
+  - {name: Khai Đại, start: 1403, end: 1407, monarch: Hồ Hán Thương, dynasty: Nhà Hồ}
+  - {name: Hưng Khánh, start: 1407, end: 1408, monarch: Giản Định Đế, dynasty: Nhà Hậu Trần}
+  - {name: Trùng Quang, start: 1409, end: 1413, monarch: Trần Quý Khoáng, dynasty: Nhà Hậu Trần}
+  - {name: Thiên Khánh, start: 1426, end: 1427, monarch: Trần Cảo, dynasty: Nhà Hậu Trần}
+  - {name: Thuận Thiên, start: 1428, end: 1433, monarch: Lê Thái Tổ, dynasty: Nhà Lê sơ}
+  - {name: Thiệu Bình, start: 1434, end: 1439, monarch: Lê Thái Tông, dynasty: Nhà Lê sơ}
+  - {name: Đại Bảo, start: 1440, end: 1442, monarch: Lê Thái Tông, dynasty: Nhà Lê sơ}
+  - {name: Đại Hòa, start: 1443, end: 1453, monarch: Lê Nhân Tông, dynasty: Nhà Lê sơ}
+  - {name: Diên Ninh, start: 1454, end: 1459, monarch: Lê Nhân Tông, dynasty: Nhà Lê sơ}
+  - {name: Thiên Hưng, start: 1459, end: 1460, monarch: Lê Nghi Dân, dynasty: Nhà Lê sơ}
+  - {name: Quang Thuận, start: 1460, end: 1469, monarch: Lê Thánh Tông, dynasty: Nhà Lê sơ}
+  - {name: Hồng Đức, start: 1470, end: 1497, monarch: Lê Thánh Tông, dynasty: Nhà Lê sơ}
+  - {name: Cảnh Thống, start: 1498, end: 1504, monarch: Lê Hiến Tông, dynasty: Nhà Lê sơ}
+  - {name: Thái Trinh, start: 1504, end: 1504, monarch: Lê Túc Tông, dynasty: Nhà Lê sơ}
+  - {name: Đoan Khánh, start: 1505, end: 1509, monarch: Lê Uy Mục, dynasty: Nhà Lê sơ}
+  - {name: Hồng Thuận, start: 1509, end: 1516, monarch: Lê Tương Dực, dynasty: Nhà Lê sơ}
+  - {name: Quang Thiệu, start: 1516, end: 1522, monarch: Lê Chiêu Tông, dynasty: Nhà Lê sơ}
+  - {name: Thống Nguyên, start: 1522, end: 1527, monarch: Lê Cung Hoàng, dynasty: Nhà Lê sơ}
+  - {name: Minh Đức, start: 1527, end: 1529, monarch: Mạc Thái Tổ, dynasty: Nhà Mạc}
+  - {name: Đại Chính, start: 1530, end: 1540, monarch: Mạc Thái Tông, dynasty: Nhà Mạc}
+  - {name: Quảng Hòa, start: 1540, end: 1546, monarch: Mạc Hiến Tông, dynasty: Nhà Mạc}
+  - {name: Vĩnh Định, start: 1547, end: 1547, monarch: Mạc Tuyên Tông, dynasty: Nhà Mạc}
+  - {name: Cảnh Lịch, start: 1548, end: 1553, monarch: Mạc Tuyên Tông, dynasty: Nhà Mạc}
+  - {name: Quang Bảo, start: 1554, end: 1561, monarch: Mạc Tuyên Tông, dynasty: Nhà Mạc}
+  - {name: Thuần Phúc, start: 1562, end: 1565, monarch: Mạc Mậu Hợp, dynasty: Nhà Mạc}
+  - {name: Sùng Khang, start: 1566, end: 1577, monarch: Mạc Mậu Hợp, dynasty: Nhà Mạc}
+  - {name: Diên Thành, start: 1578, end: 1585, monarch: Mạc Mậu Hợp, dynasty: Nhà Mạc}
+  - {name: Đoan Thái, start: 1586, end: 1587, monarch: Mạc Mậu Hợp, dynasty: Nhà Mạc}
+  - {name: Hưng Trị, start: 1588, end: 1590, monarch: Mạc Mậu Hợp, dynasty: Nhà Mạc}
+  - {name: Hồng Ninh, start: 1591, end: 1592, monarch: Mạc Mậu Hợp, dynasty: Nhà Mạc}
+  - {name: Vũ An, start: 1592, end: 1593, monarch: Mạc Toàn, dynasty: Nhà Mạc}
+  - {name: Bảo Định, start: 1592, end: 1592, monarch: Mạc Kính Chỉ, dynasty: Nhà Mạc}
+  - {name: Khang Hựu, start: 1593, end: 1593, monarch: Mạc Kính Chỉ, dynasty: Nhà Mạc}
+  - {name: Càn Thống, start: 1593, end: 1625, monarch: Mạc Kính Cung, dynasty: Nhà Mạc}
+  - {name: Long Thái, start: 1623, end: 1638, monarch: Mạc Kính Khoan, dynasty: Nhà Mạc}
+  - {name: Thuận Đức, start: 1638, end: 1677, monarch: Mạc Kính Vũ, dynasty: Nhà Mạc}
+  - {name: Nguyên Hòa, start: 1533, end: 1548, monarch: Lê Trang Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Thuận Bình, start: 1549, end: 1556, monarch: Lê Trung Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Thiên Hựu, start: 1556, end: 1557, monarch: Lê Anh Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Chính trị, start: 1558, end: 1571, monarch: Lê Anh Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Hồng Phúc, start: 1572, end: 1573, monarch: Lê Anh Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Gia Thái, start: 1573, end: 1577, monarch: Lê Thế Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Quang Hưng, start: 1578, end: 1599, monarch: Lê Thế Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Thận Đức, start: 1600, end: 1601, monarch: Lê Kính Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Hoằng Định, start: 1601, end: 1619, monarch: Lê Kính Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Vĩnh Tộ, start: 1619, end: 1629, monarch: Lê Thần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Đức Long, start: 1629, end: 1635, monarch: Lê Thần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Dương Hòa, start: 1635, end: 1643, monarch: Lê Thần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Phúc Thái, start: 1643, end: 1649, monarch: Lê Chân Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Khánh Đức, start: 1649, end: 1653, monarch: Lê Thần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Thịnh Đức, start: 1653, end: 1658, monarch: Lê Thần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Vĩnh Thọ, start: 1658, end: 1662, monarch: Lê Thần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Vạn Khánh, start: 1662, end: 1662, monarch: Lê Thần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Cảnh Trị, start: 1663, end: 1671, monarch: Lê Huyền Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Dương Đức, start: 1672, end: 1674, monarch: Lê Gia Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Đức Nguyên, start: 1674, end: 1675, monarch: Lê Gia Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Vĩnh Trị, start: 1676, end: 1679, monarch: Lê Hy Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Chính Hòa, start: 1680, end: 1705, monarch: Lê Hy Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Vĩnh Thịnh, start: 1705, end: 1720, monarch: Lê Dụ Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Bảo Thái, start: 1720, end: 1729, monarch: Lê Dụ Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Vĩnh Khánh, start: 1729, end: 1732, monarch: Lê Duy Phường, dynasty: Nhà Lê trung hưng}
+  - {name: Long Đức, start: 1732, end: 1735, monarch: Lê Thuần Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Vĩnh Hựu, start: 1735, end: 1740, monarch: Lê Ý Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Cảnh Hưng, start: 1740, end: 1786, monarch: Lê Hiển Tông, dynasty: Nhà Lê trung hưng}
+  - {name: Chiêu Thống, start: 1786, end: 1788, monarch: Lê Mẫn Đế, dynasty: Nhà Lê trung hưng}
+  - {name: Thái Đức, start: 1778, end: 1793, monarch: Nguyễn Nhạc, dynasty: Nhà Tây Sơn}
+  - {name: Quang Trung, start: 1788, end: 1792, monarch: Tây Sơn Thái Tổ, dynasty: Nhà Tây Sơn}
+  - {name: Cảnh Thịnh, start: 1793, end: 1801, monarch: Nguyễn Quang Toản, dynasty: Nhà Tây Sơn}
+  - {name: Bảo Hưng, start: 1801, end: 1802, monarch: Nguyễn Quang Toản, dynasty: Nhà Tây Sơn}
+  - {name: Gia Long, start: 1802, end: 1819, monarch: Nguyễn Thế Tổ, dynasty: Nhà Nguyễn}
+  - {name: Minh Mạng, start: 1820, end: 1840, monarch: Nguyễn Thánh Tổ, dynasty: Nhà Nguyễn}
+  - {name: Thiệu Trị, start: 1841, end: 1847, monarch: Nguyễn Hiến Tổ, dynasty: Nhà Nguyễn}
+  - {name: Tự Đức, start: 1848, end: 1883, monarch: Nguyễn Dực Tông, dynasty: Nhà Nguyễn}
+  - {name: Dục Đức, start: 1883, end: 1883, monarch: Nguyễn Cung Tông, dynasty: Nhà Nguyễn}
+  - {name: Hiệp Hòa, start: 1883, end: 1883, monarch: Nguyễn Phúc Hồng Dật, dynasty: Nhà Nguyễn}
+  - {name: Kiến Phúc, start: 1883, end: 1884, monarch: Nguyễn Giản Tông, dynasty: Nhà Nguyễn}
+  - {name: Hàm Nghi, start: 1885, end: 1888, monarch: Nguyễn Phúc Ưng Lịch, dynasty: Nhà Nguyễn}
+  - {name: Đồng Khánh, start: 1886, end: 1888, monarch: Nguyễn Cảnh Tông, dynasty: Nhà Nguyễn}
+  - {name: Thành Thái, start: 1889, end: 1907, monarch: Nguyễn Phúc Bửu Lân, dynasty: Nhà Nguyễn}
+  - {name: Duy Tân, start: 1907, end: 1916, monarch: Nguyễn Phúc Vĩnh San, dynasty: Nhà Nguyễn}
+  - {name: Khải Định, start: 1916, end: 1925, monarch: Nguyễn Hoằng Tông, dynasty: Nhà Nguyễn}
+  # Sửa tay: bảng gốc ghi 1925 (năm Khải Định mất) nhưng Bảo Đại nguyên niên là 1926 (1945 = Bảo Đại thứ 20).
+  - {name: Bảo Đại, start: 1926, end: 1945, monarch: Nguyễn Phúc Vĩnh Thụy, dynasty: Nhà Nguyễn}

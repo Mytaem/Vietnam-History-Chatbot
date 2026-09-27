@@ -1,5 +1,8 @@
 # Triều đại (Polity) → IN_PERIOD. Danh sách vua lấy từ Wikidata rồi đối chiếu file này.
 trieu_dai:
+  - {name: Hồng Bàng,         start: -2879, end: -258, period: vanlang, legendary: true}
+  - {name: Nhà Thục,          start: -257, end: -179, period: aulac, disputed: true}
+  - {name: Nhà Tiền Lý,       start: 544,  end: 602,  period: vanxuan}
   - {name: Nhà Ngô,           start: 939,  end: 965,  period: ngo}
   - {name: Nhà Đinh,          start: 968,  end: 980,  period: dinh}
   - {name: Nhà Tiền Lê,       start: 980,  end: 1009, period: tienle}

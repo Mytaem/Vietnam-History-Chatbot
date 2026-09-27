@@ -33,12 +33,21 @@ ingest:
   wikidata_batch: 50
   # Wikimedia chặn (403) User-Agent không có thông tin liên hệ: https://w.wiki/4wJS
   user_agent: "hgr-history-graphrag/0.1 (https://github.com/Mytaem/Vietnam-History-Chatbot)"
-  max_articles: {mini: 16, core: 280, full: 1000, era: 450, period: 80}
-  # người, trận, chiến tranh, triều đại, nhà nước cũ, sự kiện, khởi nghĩa,
-  # hiệp ước, đảng phái, tác phẩm, văn hóa khảo cổ, di chỉ khảo cổ, khu dân cư
-  # TODO(M3): kiểm tra lại từng QID bằng wbgetentities
-  allowed_p31: [Q5, Q178561, Q198, Q164950, Q3024240, Q1190554, Q124734,
-                Q131569, Q7278, Q47461344, Q465299, Q839954, Q486972]
+  max_articles: {mini: 18, core: 280, full: 1000, era: 450, period: 80}
+  # P31 cho phép với bài mở rộng (seed luôn được giữ). Chọn theo data/reports/rejected_p31.tsv của bản full:
+  # người, trận, chiến tranh, triều đại, cựu quốc gia, sự kiện, nổi loạn, hiệp ước, đảng phái, tác phẩm viết,
+  # văn hóa khảo cổ, di chỉ, khu định cư,
+  # triều đại Trung Hoa, cựu quốc gia Trung Hoa, tác phẩm văn học, sử liệu phi hư cấu, sách lịch sử, tác phẩm,
+  # sông, đèo, thành, xứ bảo hộ, thuộc địa, khu vực, chùa Việt Nam, thành phố cổ, thời kỳ lịch sử,
+  # khía cạnh của lịch sử, tổ chức, lực lượng vũ trang, châu, tỉnh thời Pháp thuộc.
+  # Cố ý không lấy: quốc gia/thành phố/tỉnh hiện đại, ngôn ngữ, tôn giáo, khái niệm (quá chung, nhiều nhiễu).
+  allowed_p31: [Q5, Q178561, Q198, Q164950, Q3024240, Q1190554, Q124734, Q131569, Q7278, Q47461344, Q465299,
+                Q839954, Q486972,
+                Q12857432, Q50068795, Q7725634, Q10916116, Q30277550, Q386724,
+                Q4022, Q133056, Q88291, Q164142, Q133156, Q1414991, Q10748583, Q15661340, Q11514315,
+                Q17524420, Q43229, Q772547, Q1070912, Q10831631]
+  min_seed_links: 1          # bài mở rộng phải link tới ít nhất N bài seed (lọc bài lạc đề như Tề, Algiers)
+  person_min_age_1945: 20    # người sinh sau (1945 - N) khó là nhân vật lịch sử trước 1945
 
 chunk:
   target_tokens: 500

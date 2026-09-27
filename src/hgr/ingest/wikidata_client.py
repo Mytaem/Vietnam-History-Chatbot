@@ -3,18 +3,15 @@ from __future__ import annotations
 
 import re
 
-import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from pathlib import Path
+
+from hgr.ingest.http import ApiClient
 
 TIME_PROPS = ["P569", "P570", "P571", "P576", "P580", "P582", "P585"]
 REL_PROPS = ["P22", "P25", "P26", "P1365", "P1366", "P276", "P710", "P112", "P36"]
 START_PROPS = ["P569", "P571", "P580", "P585"]
 END_PROPS = ["P570", "P576", "P582", "P585"]
 LANGS = ("vi", "en")
-
-
-class _Retryable(Exception):
-    pass
 
 
 def _time_bounds(value: dict) -> tuple[int, int] | None:
@@ -56,28 +53,13 @@ def year_range(entity: dict) -> tuple[int | None, int | None]:
 class WikidataClient:
     API = "https://www.wikidata.org/w/api.php"
 
-    def __init__(self, user_agent: str, batch: int = 50, timeout: float = 60.0):
+    def __init__(self, user_agent: str, batch: int = 50, cache_dir: str | Path | None = None):
         self.user_agent = user_agent
         self.batch = batch
-        self._http = httpx.Client(headers={"User-Agent": user_agent}, timeout=timeout)
+        self._api = ApiClient(self.API, user_agent, cache_dir)
 
-    @retry(
-        retry=retry_if_exception_type((httpx.TransportError, _Retryable)),
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, max=30),
-        reraise=True,
-    )
     def _get(self, params: dict) -> dict:
-        response = self._http.get(self.API, params={"format": "json", "maxlag": "5", **params})
-        if response.status_code in (429, 500, 502, 503, 504):
-            raise _Retryable(f"HTTP {response.status_code}")
-        response.raise_for_status()
-        data = response.json()
-        if "error" in data:
-            if data["error"].get("code") == "maxlag":
-                raise _Retryable("maxlag")
-            raise RuntimeError(f"Wikidata API lỗi: {data['error']}")
-        return data
+        return self._api.get({"format": "json", "maxlag": "5", **params})
 
     def get_entities(self, qids: list[str]) -> dict[str, dict]:
         """→ {qid: {qid, labels, aliases, descriptions, p31[], times{P: [(đầu, cuối)]}, rels{P: [qid]}, sitelink_vi}}"""
@@ -95,6 +77,26 @@ class WikidataClient:
                 if "missing" in raw:
                     continue
                 result[key] = self._compact(raw)
+        return result
+
+    def get_labels(self, qids: list[str]) -> dict[str, dict]:
+        """→ {qid: {label, sitelink_vi}} (nhẹ, không lấy claims)."""
+        qids = list(dict.fromkeys(q for q in qids if q))
+        result: dict[str, dict] = {}
+        for i in range(0, len(qids), self.batch):
+            data = self._get({
+                "action": "wbgetentities",
+                "ids": "|".join(qids[i : i + self.batch]),
+                "props": "labels|sitelinks",
+                "languages": "|".join(LANGS),
+                "sitefilter": "viwiki",
+            })
+            for key, raw in data.get("entities", {}).items():
+                if "missing" in raw:
+                    continue
+                labels = raw.get("labels", {})
+                label = (labels.get("vi") or labels.get("en") or {}).get("value")
+                result[key] = {"label": label, "sitelink_vi": raw.get("sitelinks", {}).get("viwiki", {}).get("title")}
         return result
 
     @staticmethod

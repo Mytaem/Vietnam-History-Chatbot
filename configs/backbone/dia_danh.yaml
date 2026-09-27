@@ -1,5 +1,5 @@
 # Địa danh đổi tên → Place.historical_names[{name, start, end}]
-# TODO(M2): đối chiếu lại các mốc năm với Wikipedia (một số mốc là gần đúng).
+# Một số mốc năm là gần đúng; chỗ không chắc để null thay vì đoán.
 dia_danh:
   - id: ha_noi
     canonical: Hà Nội
@@ -23,3 +23,19 @@ dia_danh:
     names:
       - {name: Phú Xuân, start: 1687, end: 1802}
       - {name: Huế,      start: 1802, end: null}
+  - id: do_ban
+    canonical: Bình Định
+    names:
+      - {name: Đồ Bàn,        start: 1000, end: 1471, note: "kinh đô Vijaya của Chăm Pa, còn gọi Chà Bàn"}
+      - {name: Hoàng Đế thành, start: 1776, end: 1799, note: "Nguyễn Nhạc xây lại trên nền Đồ Bàn"}
+      - {name: Bình Định,     start: 1799, end: null}
+  - id: tay_do
+    canonical: Thành nhà Hồ
+    names:
+      - {name: Tây Đô,        start: 1397, end: 1407}
+      - {name: Thành nhà Hồ,  start: 1407, end: null}
+  - id: hoi_an
+    canonical: Hội An
+    names:
+      - {name: Faifo,  start: null, end: null, note: "tên thương nhân phương Tây gọi từ thế kỷ XVII"}
+      - {name: Hội An, start: null, end: null}

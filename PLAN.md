@@ -27,7 +27,7 @@
 
 | Profile | Nội dung | Số bài | Thời gian ước tính (RTX 4050) |
 |---|---|---|---|
-| `mini` | 16 bài trụ cột, rải đều cả 5 thời kỳ | 16 | ~25 phút |
+| `mini` | 18 bài trụ cột, rải đều cả 5 thời kỳ | 18 | ~1–1,5 giờ (469 chunk, đo thực tế) |
 | `era:<id>` | Một thời kỳ lớn, ví dụ `era:phongkien` | 60–420 | 1–6 giờ |
 | `period:<id>` | Một giai đoạn, ví dụ `period:tran` | 15–60 | 20 phút – 1,5 giờ |
 | `core` | Các bài Tier A của cả 29+3 giai đoạn (~256 bài) | ~256 | ~8–9 giờ |
@@ -243,7 +243,7 @@ Nội dung của từng giai đoạn (`role_vocab`, `polities`, ghi chú) đư�
 
 | Đêm | Nội dung | Số bài | Ước tính |
 |---|---|---|---|
-| 0 (chiều) | `mini`, kiểm tra end-to-end | 16 | 25 phút |
+| 0 (chiều) | `mini`, kiểm tra end-to-end | 18 | 25 phút |
 | 1 | `era:phongkien` Tier A (giai đoạn 12–23) | ~110 A | ~4 giờ |
 | 2 | `era:candai` Tier A + `era:tiensu`, `era:dungnuoc`, `era:bacthuoc`, `era:songsong` Tier A | ~146 A | ~4,5 giờ |
 | 3 | Tier B của toàn bộ | ~680 B | ~4,5 giờ |
@@ -402,7 +402,7 @@ F:\search engines\
 │   ├── settings.yaml             # model, chunk, top-k, trọng số fusion, profile
 │   ├── ontology.yaml             # nhãn, quan hệ, domain→range, mô tả cho prompt
 │   ├── periods.yaml              # 5 era, 29 period + 3 nhánh song song (Mục 2)
-│   ├── seeds.yaml                # profile mini (16 bài) + bổ sung thủ công
+│   ├── seeds.yaml                # profile mini (18 bài) + bổ sung thủ công
 │   ├── infobox_map.yaml          # trường infobox → quan hệ ("chỉ huy1" → COMMANDED)
 │   └── backbone\
 │       ├── quoc_hieu.yaml        # quốc hiệu theo thời gian
@@ -702,7 +702,7 @@ llm:      {host: http://localhost:11434, chat_model: qwen3:4b-instruct-2507,
 neo4j:    {uri: bolt://localhost:7687, user: neo4j, password: ${NEO4J_PASSWORD}}
 scope:    {max_year: 1945, periods_file: configs/periods.yaml, backbone_dir: configs/backbone}
 ingest:   {lang: vi, expand_hops: 1, category_depth: 2,
-           max_articles: {mini: 16, core: 280, full: 1000, era: 450, period: 80},
+           max_articles: {mini: 18, core: 280, full: 1000, era: 450, period: 80},
            allowed_p31: [Q5, Q178561, Q198, Q164950, Q3024240, Q1190554, Q124734,
                          Q131569, Q7278, Q47461344, Q465299, Q839954, Q486972]}
            # người, trận, chiến tranh, triều đại, nhà nước cũ, sự kiện, khởi nghĩa,
@@ -725,8 +725,8 @@ retrieval:{chunk_k: 20, hops: 2, max_degree: p99, ppr_alpha: 0.85, top_chunks: 8
 - mở cổng 7474 và 7687;
 - volume `./.neo4j/data`.
 
-**Profile `mini` trong `seeds.yaml`** (16 bài rải đều 5 thời kỳ và nhánh song song):
-Văn hóa Đông Sơn · Hùng Vương · An Dương Vương · Hai Bà Trưng · Lý Nam Đế · Ngô Quyền · Trận Bạch Đằng (938) · Chăm Pa · Lý Thường Kiệt · Trần Hưng Đạo · Trận Bạch Đằng (1288) · Lê Lợi · Quang Trung · Gia Long · Phong trào Cần Vương · Cách mạng Tháng Tám
+**Profile `mini` trong `seeds.yaml`** (18 bài rải đều 5 thời kỳ và nhánh song song):
+Văn hóa Hòa Bình · Văn hóa Bắc Sơn · Văn hóa Đông Sơn · Hùng Vương · An Dương Vương · Hai Bà Trưng · Lý Nam Đế · Ngô Quyền · Trận Bạch Đằng (938) · Chăm Pa · Lý Thường Kiệt · Trần Hưng Đạo · Trận Bạch Đằng (1288) · Lê Lợi · Quang Trung · Gia Long · Phong trào Cần Vương · Cách mạng Tháng Tám
 
 ---
 
@@ -782,7 +782,7 @@ Văn hóa Đông Sơn · Hùng Vương · An Dương Vương · Hai Bà Trưng �
 
 2. **Hạ tầng:** `hgr doctor`.
 3. **Build mini:** `scripts\build_index.ps1 -Profile mini`.
-   - Kỳ vọng: 16 bài, khoảng 130 chunk, hơn 300 entity, hơn 500 relation, cả 5 thời kỳ đều có dữ liệu.
+   - Kỳ vọng: 18 bài, khoảng 470 chunk (đo thực tế; bài Wikipedia dài hơn ước tính ban đầu ~130), cả 5 thời kỳ đều có dữ liệu.
    - Kiểm tra trùng tên: `MATCH (e:Entity) WITH toLower(e.name) n, count(*) c WHERE c>1 RETURN n,c` phải chỉ còn các trường hợp trùng tên hợp lệ (đã có năm trong `display_name`).
 4. **Phân bố dữ liệu:** sau khi build `core` hoặc `full`, `hgr stats --by-period` phải cho thấy 32/32 giai đoạn có entity và relation, và không giai đoạn nào dưới 3%.
 5. **E2E:** `pytest tests/test_e2e_smoke.py -m e2e`. Test hỏi 5 câu (mỗi thời kỳ 1 câu) và kiểm tra câu trả lời có từ khóa đúng cùng ít nhất một `[n]`.

@@ -2,20 +2,15 @@
 from __future__ import annotations
 
 from collections import deque
+from pathlib import Path
 from typing import Iterator
 from urllib.parse import quote
 
-import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-
+from hgr.ingest.http import ApiClient
 from hgr.log import get_logger
 from hgr.process.normalize import nfc
 
 log = get_logger(__name__)
-
-
-class _Retryable(Exception):
-    pass
 
 
 def _batches(items: list[str], size: int) -> Iterator[list[str]]:
@@ -27,27 +22,12 @@ class WikiClient:
     API = "https://vi.wikipedia.org/w/api.php"
     BATCH = 50
 
-    def __init__(self, user_agent: str, timeout: float = 60.0):
+    def __init__(self, user_agent: str, cache_dir: str | Path | None = None):
         self.user_agent = user_agent
-        self._http = httpx.Client(headers={"User-Agent": user_agent}, timeout=timeout)
+        self._api = ApiClient(self.API, user_agent, cache_dir)
 
-    @retry(
-        retry=retry_if_exception_type((httpx.TransportError, _Retryable)),
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, max=30),
-        reraise=True,
-    )
     def _get(self, params: dict) -> dict:
-        response = self._http.get(self.API, params={"format": "json", "formatversion": "2", "maxlag": "5", **params})
-        if response.status_code in (429, 500, 502, 503, 504):
-            raise _Retryable(f"HTTP {response.status_code}")
-        response.raise_for_status()
-        data = response.json()
-        if "error" in data:
-            if data["error"].get("code") == "maxlag":
-                raise _Retryable("maxlag")
-            raise RuntimeError(f"MediaWiki API lỗi: {data['error']}")
-        return data
+        return self._api.get({"format": "json", "formatversion": "2", "maxlag": "5", **params})
 
     def _query(self, params: dict) -> Iterator[dict]:
         """Lặp qua các trang kết quả, tự xử lý `continue`."""
