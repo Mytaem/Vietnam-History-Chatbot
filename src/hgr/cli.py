@@ -142,15 +142,20 @@ def _read_jsonl(path: Path):
 
 
 @app.command()
-def ingest(profile: str = typer.Option("mini", help=PROFILE_HELP)):
+def ingest(
+    profile: str = typer.Option("mini", help=PROFILE_HELP),
+    fresh: bool = typer.Option(False, "--fresh", help="Xóa data/raw trước (mặc định: gộp với dữ liệu đã có)"),
+):
     """Thu thập bài Wikipedia + Wikidata → data/raw/<period>/articles.jsonl. (M3)"""
     from hgr.ingest.collector import collect
 
-    summary = collect(profile)
+    summary = collect(profile, fresh=fresh)
     for period_id, count in summary["articles"].items():
         typer.echo(f"  {period_id:<14} {count} bài")
     total = sum(summary["articles"].values())
-    _ok(f"{total} bài ({summary['tier_a']} tier A) → data/raw/<period>/articles.jsonl")
+    on_disk = summary["total_on_disk"]
+    _ok(f"Lần này: {total} bài ({summary['tier_a']} tier A). Trên đĩa: {sum(on_disk.values())} bài, "
+        f"{len(on_disk)} giai đoạn → data/raw/<period>/articles.jsonl")
     if summary["missing_seeds"]:
         typer.secho(
             f"[WARN] {len(summary['missing_seeds'])} tiêu đề seed không tồn tại (xem data/reports/missing_seeds.txt):",
@@ -158,6 +163,9 @@ def ingest(profile: str = typer.Option("mini", help=PROFILE_HELP)):
         )
         for title, period_id in summary["missing_seeds"]:
             typer.echo(f"  {title}  ({period_id or '-'})")
+    typer.echo(f"  Bỏ: {len(summary['off_topic'])} bài lạc đề (không link tới seed), "
+               f"{len(summary['too_young'])} người sinh quá muộn, "
+               f"{len(summary['dropped_out_of_scope'])} bài ngoài phạm vi profile")
     for title in summary["dropped_after_cutoff"]:
         typer.secho(f"[INFO] Bỏ bài bắt đầu sau mốc cắt: {title}", fg=typer.colors.CYAN)
     for title in summary["unassigned"]:
@@ -233,25 +241,85 @@ def extract(
     tier: str = typer.Option(None, help="A | B"),
 ):
     """Trích xuất thực thể + quan hệ bằng LLM local. (M4)"""
-    _todo("extract", "M4")
+    from hgr.extract.extractor import run
+
+    run(era=era, period=period, tier=tier, structured=structured)
 
 
 @app.command()
 def resolve():
     """Hợp nhất thực thể (QID → alias → fuzzy). (M5)"""
-    _todo("resolve", "M5")
+    from hgr.resolve.resolver import run
+
+    run()
 
 
 @app.command()
 def load():
     """Nạp Era/Period/backbone/Article/Chunk/Entity/Relation vào Neo4j. (M5)"""
-    _todo("load", "M5")
+    from hgr.config import get_settings
+    from hgr.graph.loader import (
+        compute_degree_and_display_names,
+        link_periods,
+        load_articles_chunks,
+        load_backbone,
+        load_periods,
+        load_resolved,
+    )
+    from hgr.graph.store import Neo4jStore
+    from hgr.periods import load_eras
+
+    settings = get_settings()
+    store = Neo4jStore(
+        settings.neo4j.uri, settings.neo4j.user, settings.neo4j.password, settings.neo4j.database
+    )
+    try:
+        if not store.ping():
+            _fail(f"Không kết nối được Neo4j ({settings.neo4j.uri}); hãy chạy 'docker compose up -d'.")
+            raise typer.Exit(1)
+        schema = Path(settings.project_root) / "src" / "hgr" / "graph" / "schema.cypher"
+        store.apply_schema(str(schema))
+        eras = load_eras()
+        load_periods(store, eras)
+        data_dir = Path(settings.project_root) / settings.paths.data_dir
+        load_resolved(store, str(data_dir / "resolved"))
+        load_backbone(store, str(Path(settings.project_root) / settings.scope.backbone_dir))
+        load_articles_chunks(store, str(data_dir))
+        link_periods(store)
+        compute_degree_and_display_names(store)
+        _ok("Neo4j schema, periods, articles, chunks, entities và relations đã được nạp")
+    finally:
+        store.close()
 
 
 @app.command()
 def embed():
     """Embed Chunk + Entity bằng bge-m3 → vector index. (M5)"""
-    _todo("embed", "M5")
+    from hgr.config import get_settings
+    from hgr.embed.embedder import embed_chunks, embed_entities
+    from hgr.graph.store import Neo4jStore
+    from hgr.llm.ollama_client import OllamaClient
+
+    settings = get_settings()
+    store = Neo4jStore(
+        settings.neo4j.uri, settings.neo4j.user, settings.neo4j.password, settings.neo4j.database
+    )
+    client = OllamaClient(
+        settings.llm.host,
+        settings.llm.chat_model,
+        settings.llm.embed_model,
+        settings.llm.num_ctx,
+        max_retries=settings.llm.max_retries,
+    )
+    try:
+        if not store.ping():
+            _fail(f"Không kết nối được Neo4j ({settings.neo4j.uri}); hãy chạy 'docker compose up -d'.")
+            raise typer.Exit(1)
+        count_chunks = embed_chunks(store, client)
+        count_entities = embed_entities(store, client)
+        _ok(f"Embedded {count_chunks} chunk và {count_entities} entity")
+    finally:
+        store.close()
 
 
 @app.command()
