@@ -1,10 +1,34 @@
-"""Cache đĩa cho kết quả LLM theo sha1(prompt_version + input) → resume được. (M4)"""
+"""Cache đĩa cho kết quả LLM theo sha1/sha256(prompt_version + input) → resume được. (M4)"""
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
+import unicodedata
+import uuid
+
+from hgr.log import get_logger
+
+log = get_logger(__name__)
+
+
+def make_cache_key(
+    model: str,
+    prompt_version: str,
+    chunk_id: str,
+    chunk_content: str,
+) -> str:
+    """Tạo khóa cache ổn định từ (model, phiên bản prompt, chunk_id, nội dung chunk) bằng sha256."""
+    parts = [
+        str(model or "").strip(),
+        str(prompt_version or "").strip(),
+        str(chunk_id or "").strip(),
+        unicodedata.normalize("NFC", str(chunk_content or "")).strip(),
+    ]
+    raw = "\x1f".join(parts)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 class DiskCache:
@@ -14,11 +38,44 @@ class DiskCache:
 
     @staticmethod
     def key(*parts: str) -> str:
+        """API cũ: sha1 các phần tử nối bằng separator."""
         return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def make_key(
+        model: str,
+        prompt_version: str,
+        chunk_id: str,
+        chunk_content: str,
+    ) -> str:
+        """Tạo khóa cache ổn định từ (model, prompt_version, chunk_id, chunk_content)."""
+        return make_cache_key(model, prompt_version, chunk_id, chunk_content)
+
     def get(self, key: str) -> Any | None:
+        """Đọc cache: file không tồn tại, rỗng hoặc hỏng thì trả về None (miss) chứ không văng lỗi."""
         path = self.dir / f"{key}.json"
-        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+        if not path.exists():
+            return None
+        try:
+            content = path.read_text(encoding="utf-8").strip()
+            if not content:
+                return None
+            return json.loads(content)
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning("Cache file %s bị hỏng hoặc không đọc được (%s), coi như cache miss", path, e)
+            return None
 
     def set(self, key: str, value: Any) -> None:
-        (self.dir / f"{key}.json").write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+        """Ghi nguyên tử: ghi vào file tạm có uuid trong cùng thư mục, rồi os.replace sang file đích."""
+        target_path = self.dir / f"{key}.json"
+        temp_path = self.dir / f".{key}.{uuid.uuid4().hex}.tmp"
+        try:
+            temp_path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+            os.replace(temp_path, target_path)
+        except Exception:
+            if temp_path.exists():
+                try:
+                    temp_path.unlink()
+                except OSError:
+                    pass
+            raise
