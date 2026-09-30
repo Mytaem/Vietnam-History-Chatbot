@@ -1,4 +1,7 @@
-"""Test resolve/resolver.py"""
+"""Test resolve/resolver.py: ID generation, 3-source alias loading, conditional fuzzy matching."""
+from pathlib import Path
+import json
+
 from hgr.resolve.resolver import EntityResolver, _slug
 
 
@@ -24,3 +27,252 @@ def test_resolver_prefers_wikidata_id():
     resolver = EntityResolver()
 
     assert resolver.resolve({"name": "Hồ Chí Minh", "qid": "Q7186"}, [], "candai") == "qid:Q7186"
+
+
+def test_three_bach_dang_battles_separate_ids_by_year():
+    """Ba 'Trận Bạch Đằng' (938, 981, 1288) cùng type Event, tên giống nhau: sinh 3 ID khác nhau theo năm."""
+    resolver = EntityResolver()
+
+    b1 = resolver.resolve({"name": "Trận Bạch Đằng", "type": "Event", "start_year": 938})
+    b2 = resolver.resolve({"name": "Trận Bạch Đằng", "type": "Event", "start_year": 981})
+    b3 = resolver.resolve({"name": "Trận Bạch Đằng", "type": "Event", "start_year": 1288})
+
+    assert b1 == "local:tran-bach-dang-938"
+    assert b2 == "local:tran-bach-dang-981"
+    assert b3 == "local:tran-bach-dang-1288"
+    assert len({b1, b2, b3}) == 3
+
+
+def test_tran_hung_dao_and_hung_dao_dai_vuong_merged():
+    """Trần Hưng Đạo và Hưng Đạo Đại Vương được gộp về cùng 1 ID chuẩn qua alias và thuộc tính."""
+    # Cách 1: Nạp alias trước (từ Wikidata hoặc backbone)
+    resolver = EntityResolver()
+    resolver.add_aliases(
+        "local:tran-hung-dao",
+        ["Trần Hưng Đạo", "Hưng Đạo Đại Vương", "Trần Quốc Tuấn"],
+        ent_type="Person",
+    )
+    assert resolver.resolve({"name": "Trần Hưng Đạo", "type": "Person"}) == "local:tran-hung-dao"
+    assert resolver.resolve({"name": "Hưng Đạo Đại Vương", "type": "Person"}) == "local:tran-hung-dao"
+
+    # Cách 2: Thực thể đầu tiên mang theo danh sách aliases khi LLM trích xuất
+    r2 = EntityResolver()
+    id1 = r2.resolve({"name": "Trần Hưng Đạo", "type": "Person", "aliases": ["Hưng Đạo Đại Vương"]})
+    id2 = r2.resolve({"name": "Hưng Đạo Đại Vương", "type": "Person"})
+    assert id1 == id2 == "local:tran-hung-dao"
+
+
+def test_same_name_different_types_not_merged():
+    """Hai thực thể cùng tên nhưng khác type (ví dụ Person 'Hoa Lư' và Place 'Hoa Lư'): KHÔNG bị gộp."""
+    resolver = EntityResolver()
+
+    p_id = resolver.resolve({"name": "Hoa Lư", "type": "Person"})
+    pl_id = resolver.resolve({"name": "Hoa Lư", "type": "Place"})
+
+    assert p_id != pl_id
+    assert p_id == "local:hoa-lu"
+    assert pl_id == "local:hoa-lu-place"
+
+
+def test_events_similar_name_different_years_outside_tolerance_not_merged():
+    """Hai Event trùng tên gần đúng nhưng năm cách nhau xa (ngoài tolerance): KHÔNG bị gộp."""
+    resolver = EntityResolver(event_year_tolerance=1)
+
+    e1 = resolver.resolve({"name": "Chiến dịch Bạch Đằng", "type": "Event", "start_year": 938})
+    e2 = resolver.resolve({"name": "Trận chiến Bạch Đằng", "type": "Event", "start_year": 1288})
+
+    assert e1 != e2
+    assert e1 == "local:chien-dich-bach-dang-938"
+    assert e2 == "local:tran-chien-bach-dang-1288"
+
+
+def test_events_similar_name_within_tolerance_are_merged():
+    """Hai Event tên gần giống nhau (token_set_ratio >= 92) và năm chênh lệch <= tolerance: ĐƯỢC gộp."""
+    resolver = EntityResolver(event_year_tolerance=1)
+
+    e1 = resolver.resolve({"name": "Khởi nghĩa Lam Sơn", "type": "Event", "start_year": 1418})
+    e2 = resolver.resolve({"name": "Cuộc khởi nghĩa Lam Sơn", "type": "Event", "start_year": 1418})
+
+    assert e1 == e2 == "local:khoi-nghia-lam-son-1418"
+
+
+def test_wikidata_qid_always_preferred_and_not_confused():
+    """Entity có QID Wikidata luôn trả về qid:Q... bất kể tên trùng với entity khác."""
+    resolver = EntityResolver()
+
+    q1 = resolver.resolve({"name": "Bạch Đằng", "qid": "Q12345"})
+    q2 = resolver.resolve({"name": "Bạch Đằng", "qid": "qid:Q98765"})
+
+    assert q1 == "qid:Q12345"
+    assert q2 == "qid:Q98765"
+    assert q1 != q2
+
+
+def test_aliases_from_three_sources_lead_to_correct_id(tmp_path):
+    """Alias từ 3 nguồn (dia_danh.yaml, Wikidata articles, backbone) đều dẫn đúng về ID chuẩn."""
+    resolver = EntityResolver()
+
+    # Nguồn 1: dia_danh.yaml (Place)
+    dia_danh_file = tmp_path / "dia_danh.yaml"
+    dia_danh_file.write_text(
+        "dia_danh:\n"
+        "  - id: ha_noi\n"
+        "    canonical: Hà Nội\n"
+        "    names:\n"
+        "      - {name: Thăng Long}\n"
+        "      - {name: Đông Đô}\n",
+        encoding="utf-8",
+    )
+    resolver.load_dia_danh(dia_danh_file)
+    assert resolver.resolve({"name": "Đông Đô", "type": "Place"}) == "local:ha_noi"
+
+    # Nguồn 2: backbone (trieu_dai.yaml & quoc_hieu.yaml)
+    backbone_dir = tmp_path / "backbone"
+    backbone_dir.mkdir(parents=True, exist_ok=True)
+    (backbone_dir / "trieu_dai.yaml").write_text(
+        "trieu_dai:\n"
+        "  - {name: Nhà Hậu Trần, start: 1407, end: 1414, aliases: [Hậu Trần]}\n",
+        encoding="utf-8",
+    )
+    (backbone_dir / "quoc_hieu.yaml").write_text(
+        "quoc_hieu:\n"
+        "  - {name: Đại Cồ Việt, start: 968, end: 1054}\n",
+        encoding="utf-8",
+    )
+    resolver.load_backbone(backbone_dir)
+    assert resolver.resolve({"name": "Hậu Trần", "type": "Polity"}) == "local:nha-hau-tran"
+    assert resolver.resolve({"name": "Đại Cồ Việt", "type": "Polity"}) == "local:dai-co-viet"
+
+    # Nguồn 3: Wikidata articles (articles.jsonl)
+    articles_data = [
+        {
+            "title": "Hồ Chí Minh",
+            "qid": "Q7186",
+            "label": "Hồ Chí Minh",
+            "aliases": ["Nguyễn Ái Quốc", "Bác Hồ", "Nguyễn Sinh Cung"],
+            "redirects": ["Nguyễn Tất Thành"],
+            "type": "Person",
+        }
+    ]
+    resolver.load_articles(articles_data)
+    assert resolver.resolve({"name": "Nguyễn Ái Quốc", "type": "Person"}) == "qid:Q7186"
+    assert resolver.resolve({"name": "Bác Hồ", "type": "Person"}) == "qid:Q7186"
+    assert resolver.resolve({"name": "Nguyễn Tất Thành", "type": "Person"}) == "qid:Q7186"
+
+
+def test_event_without_year_not_fuzzy_merged_with_event_with_year():
+    """Entity thiếu năm mà type là Event: không bị fuzzy-gộp với entity có năm (an toàn, tách riêng)."""
+    resolver = EntityResolver()
+
+    e_year = resolver.resolve({"name": "Trận Chi Lăng", "type": "Event", "start_year": 1427})
+    e_noyear = resolver.resolve({"name": "Trận Chi Lăng", "type": "Event", "start_year": None})
+
+    assert e_year != e_noyear
+    assert e_year == "local:tran-chi-lang-1427"
+    assert e_noyear == "local:tran-chi-lang"
+
+
+def test_parameter_tuning_changes_resolution_behavior():
+    """Đổi fuzzy_threshold hoặc event_year_tolerance qua tham số: hành vi gộp/tách thay đổi tương ứng."""
+    # 1. event_year_tolerance:
+    # 1788 và 1789 (chênh lệch 1 năm)
+    r_tol0 = EntityResolver(event_year_tolerance=0)
+    e1_t0 = r_tol0.resolve({"name": "Trận Ngọc Hồi Đống Đa", "type": "Event", "start_year": 1788})
+    e2_t0 = r_tol0.resolve({"name": "Trận Ngọc Hồi - Đống Đa", "type": "Event", "start_year": 1789})
+    assert e1_t0 != e2_t0
+
+    r_tol1 = EntityResolver(event_year_tolerance=1)
+    e1_t1 = r_tol1.resolve({"name": "Trận Ngọc Hồi Đống Đa", "type": "Event", "start_year": 1788})
+    e2_t1 = r_tol1.resolve({"name": "Trận Ngọc Hồi - Đống Đa", "type": "Event", "start_year": 1789})
+    assert e1_t1 == e2_t1 == "local:tran-ngoc-hoi-dong-da-1788"
+
+    # 2. fuzzy_threshold:
+    # "Lý Thường Kiệt" vs "Lý Thường"
+    r_strict = EntityResolver(fuzzy_threshold=95)
+    p1 = r_strict.resolve({"name": "Lý Thường Kiệt", "type": "Person"})
+    p2 = r_strict.resolve({"name": "Lý Thường", "type": "Person"})
+    assert p1 != p2
+
+    r_loose = EntityResolver(fuzzy_threshold=70)
+    p3 = r_loose.resolve({"name": "Lý Thường Kiệt", "type": "Person"})
+    p4 = r_loose.resolve({"name": "Lý Thường", "type": "Person"})
+    assert p3 == p4
+
+
+def test_mismatched_wikilink_in_chunk_links_is_rejected_and_falls_through():
+    """Một wikilink trong chunk_links trỏ đến ID/tên KHÔNG khớp với tên thực thể: bị từ chối và rơi xuống bước tiếp theo."""
+    resolver = EntityResolver()
+
+    # Thực thể cần resolve là "Lê Lợi"
+    # chunk_links chứa link của một thực thể khác không liên quan
+    mismatched_links = [
+        {"surface": "Lam Sơn", "target": "Khởi nghĩa Lam Sơn", "qid": "Q10780287"},
+        {"surface": "Đông Đô", "target": "Hà Nội", "qid": "Q1858"},
+    ]
+
+    resolved_id = resolver.resolve(
+        {"name": "Lê Lợi", "type": "Person"},
+        chunk_links=mismatched_links,
+    )
+
+    # Hệ thống từ chối các link không khớp tên, không bị gán nhầm sang QID của link sai
+    assert resolved_id != "qid:Q10780287"
+    assert resolved_id != "qid:Q1858"
+    # Rơi xuống bước sinh local ID theo đúng thực thể
+    assert resolved_id == "local:le-loi"
+
+
+def test_real_rapidfuzz_metrics():
+    """Xác minh và in số liệu thật 100% của rapidfuzz cho các cặp thực thể lịch sử."""
+    from rapidfuzz import fuzz
+
+    pairs = [
+        ("Lý Thường", "Lý Thường Kiệt"),
+        ("Trần Hưng Đạo", "Hưng Đạo Đại Vương"),
+        ("Trận Bạch Đằng", "Bạch Đằng"),
+        ("Trận Bạch Đằng", "Chiến dịch Bạch Đằng"),
+        ("Trận Bạch Đằng", "Trận đánh Bạch Đằng"),
+        ("Trận Bạch Đằng", "Chiến thắng Bạch Đằng"),
+    ]
+
+    results = {}
+    for s1, s2 in pairs:
+        c1, c2 = s1.lower(), s2.lower()
+        t_set = fuzz.token_set_ratio(c1, c2)
+        t_sort = fuzz.token_sort_ratio(c1, c2)
+        avg = (t_set + t_sort) / 2.0
+        m = min(t_set, t_sort)
+        results[(s1, s2)] = (t_set, t_sort, avg, m)
+
+    # Kiểm tra số thật chính xác
+    # a. "Lý Thường" vs "Lý Thường Kiệt"
+    set_a, sort_a, avg_a, min_a = results[("Lý Thường", "Lý Thường Kiệt")]
+    assert set_a == 100.0
+    assert round(sort_a, 2) == 78.26
+    assert round(avg_a, 2) == 89.13
+    assert round(min_a, 2) == 78.26
+
+    # b. "Trần Hưng Đạo" vs "Hưng Đạo Đại Vương"
+    set_b, sort_b, avg_b, min_b = results[("Trần Hưng Đạo", "Hưng Đạo Đại Vương")]
+    assert round(set_b, 2) == 76.19
+    assert round(sort_b, 2) == 64.52
+    assert round(avg_b, 2) == 70.35
+    assert round(min_b, 2) == 64.52
+
+
+def test_ly_thuong_and_ly_thuong_kiet_always_split_at_threshold_92():
+    """Khẳng định: ở ngưỡng 92, cặp 'Lý Thường' / 'Lý Thường Kiệt' luôn TÁCH (không phụ thuộc config runtime).
+
+    Nếu sau này ai vô tình đổi công thức (ví dụ chỉ dùng token_set_ratio) hoặc hạ threshold dưới ~90,
+    test này sẽ báo đỏ ngay lập tức để bảo vệ tính toàn vẹn dữ liệu thực thể.
+    """
+    resolver = EntityResolver(fuzzy_threshold=92)
+    id1 = resolver.resolve({"name": "Lý Thường", "type": "Person"}, [], "ly")
+    id2 = resolver.resolve({"name": "Lý Thường Kiệt", "type": "Person"}, [], "ly")
+
+    assert id1 != id2
+    assert id1 == "local:ly-thuong"
+    assert id2 == "local:ly-thuong-kiet"
+
+
+
