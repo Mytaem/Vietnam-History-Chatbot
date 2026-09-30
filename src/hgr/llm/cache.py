@@ -20,14 +20,17 @@ def make_cache_key(
     chunk_id: str,
     chunk_content: str,
 ) -> str:
-    """Tạo khóa cache ổn định từ (model, phiên bản prompt, chunk_id, nội dung chunk) bằng sha256."""
-    parts = [
-        str(model or "").strip(),
-        str(prompt_version or "").strip(),
-        str(chunk_id or "").strip(),
-        unicodedata.normalize("NFC", str(chunk_content or "")).strip(),
-    ]
-    raw = "\x1f".join(parts)
+    """Tạo khóa cache ổn định từ (model, phiên bản prompt, chunk_id, nội dung chunk) bằng sha256.
+
+    Chuẩn hóa Unicode NFC cho tất cả các thành phần để tránh lệch mã do gõ phím khác nhau (NFC vs NFD),
+    và đóng gói định dạng mảng JSON để tránh hiện tượng trùng lặp ranh giới ("a", "bc") vs ("ab", "c").
+    """
+    model_norm = unicodedata.normalize("NFC", str(model or "")).strip()
+    prompt_norm = unicodedata.normalize("NFC", str(prompt_version or "")).strip()
+    chunk_id_norm = unicodedata.normalize("NFC", str(chunk_id or "")).strip()
+    content_norm = unicodedata.normalize("NFC", str(chunk_content or "")).strip()
+
+    raw = json.dumps([model_norm, prompt_norm, chunk_id_norm, content_norm], ensure_ascii=False)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 

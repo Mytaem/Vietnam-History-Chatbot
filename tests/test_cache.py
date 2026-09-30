@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import unicodedata
 from unittest.mock import patch
 
 from hgr.llm.cache import DiskCache, make_cache_key
@@ -63,6 +64,34 @@ def test_atomic_write_cleans_temp_file_on_error(tmp_path: Path):
     # Thư mục không còn file tạm .tmp nào còn sót lại
     tmp_files = list(tmp_path.glob("*.tmp")) + list(tmp_path.glob(".*.tmp"))
     assert len(tmp_files) == 0
+
+
+def test_make_cache_key_avoids_ambiguity():
+    """Hai bộ tham số ghép nhập nhằng (ví dụ ('a', 'bc') và ('ab', 'c')) phải cho hai khóa khác nhau."""
+    k1 = make_cache_key("a", "bc", "chk_1", "text")
+    k2 = make_cache_key("ab", "c", "chk_1", "text")
+    assert k1 != k2
+
+    # Nhập nhằng giữa chunk_id và nội dung
+    k3 = make_cache_key("qwen", "v1", "chk_1", "2_content")
+    k4 = make_cache_key("qwen", "v1", "chk_12", "_content")
+    assert k3 != k4
+
+
+def test_make_cache_key_nfc_nfd_equivalence():
+    """Cùng đầu vào (kể cả khác dạng tổ hợp NFD và dựng sẵn NFC) phải cho cùng một khóa."""
+    # Chuỗi tiếng Việt có dấu dạng dựng sẵn NFC
+    text_nfc = unicodedata.normalize("NFC", "Trần Hưng Đạo lãnh đạo nhân dân đánh bại quân Nguyên Mông")
+    # Chuỗi tiếng Việt có dấu dạng tổ hợp NFD
+    text_nfd = unicodedata.normalize("NFD", "Trần Hưng Đạo lãnh đạo nhân dân đánh bại quân Nguyên Mông")
+
+    # Bản thân hai chuỗi này khác nhau về số lượng ký tự và byte code
+    assert text_nfc != text_nfd
+
+    # Khi đưa vào make_cache_key, kết quả phải ra cùng một mã băm sha256
+    k_nfc = make_cache_key("qwen3:4b", "v1", "chunk_101", text_nfc)
+    k_nfd = make_cache_key("qwen3:4b", "v1", "chunk_101", text_nfd)
+    assert k_nfc == k_nfd
 
 
 def test_cache_key_generation_stability_and_uniqueness():

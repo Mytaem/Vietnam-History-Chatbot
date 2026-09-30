@@ -33,4 +33,3 @@ relations:
   SIGNED:          {domain: [Person, Polity], range: [Event]}
   AUTHORED:        {domain: [Person], range: [Work]}
   FOUND_AT:        {domain: [Culture], range: [Place]}
-  RELATED_TO:      {domain: ["*"], range: ["*"]}

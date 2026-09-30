@@ -513,7 +513,7 @@ Mọi lệnh đều nhận tham số `--era`/`--period` để chỉ xử lý m�
 |---|---|---|---|
 | 1 | `hgr ingest --profile …` | `periods.yaml`, `seeds.yaml` → `raw/<period>/articles.jsonl` | Xem chi tiết bên dưới bảng |
 | 2 | `hgr parse` | Bổ sung `sections[]`, `infobox{}`, `links[]` | `mwparserfromhell`: tách infobox trước, giữ wikilink dạng `(surface, target)`, bỏ `<ref>`, navbox và các mục Tham khảo/Xem thêm/Liên kết ngoài. Chuẩn hóa NFC |
-| 3 | `hgr chunk` | → `processed/chunks.jsonl` | Cắt theo section rồi theo câu, ~500 token, chồng 1 câu. Thêm header `[Bài … \| Mục … \| Chủ thể … \| Giai đoạn …]`. Ghi `links[]`, `years[]`, `min/max_year`, `period_id`, `tier`. Áp mốc cắt 1945 |
+| 3 | `hgr chunk` | → `processed/chunks.jsonl` | Cắt theo section rồi theo câu, ~500 token, chồng 1 câu. Thêm header `[Bài … \| Mục … \| Chủ thể … \| Giai đoạn …]`. Ghi `links[]`, `years[]`, `min/max_year`, `period_id`, `tier`. Áp mốc cắt 1945 và giới hạn Tier B tối đa `extract.max_chunks_b` chunk đầu |
 | 4a | `hgr extract --structured` | → `extracted/structured.jsonl` | Sinh triplet từ backbone (`curated`, 1.0), Wikidata (P22/P25 cha mẹ, P26 vợ/chồng, P1365/P1366 tiền nhiệm/kế nhiệm, P276 địa điểm, P710 bên tham gia, P112 người sáng lập, P36 thủ đô) và infobox (0.95) |
 | 4b | `hgr extract [--era] [--period] [--tier]` | → `extractions.jsonl` | Xem chi tiết bên dưới bảng |
 | 5 | (trong extract) `validator` | Bản ghi sai → `rejects.jsonl` kèm lý do | Kiểm tra domain→range; `partial_ratio(evidence, chunk) ≥ 90`; năm trong [-40000, 1945] đối với sự kiện; `confidence ≥ 0.6` |
@@ -535,7 +535,7 @@ Bài chỉ được **giữ lại** khi thỏa cả ba điều kiện:
 Mỗi bài được gán `period_id`. Nếu một bài giao với nhiều giai đoạn thì chọn giai đoạn có phần giao lớn nhất, còn các giai đoạn khác ghi vào `period_ids[]`. Bài cũng được gán `tier` theo quota. Thông tin Wikidata lấy qua `wbgetentities`, mỗi lô 50.
 
 **Bước 4b: `hgr extract`.**
-- Tier A xử lý mọi chunk; Tier B chỉ xử lý `max_chunks_b` chunk đầu.
+- Tier A xử lý mọi chunk; Tier B chỉ xử lý tối đa `max_chunks_b` chunk đầu (được giới hạn từ bước chunk).
 - **Pass 1 (Entity):** đưa vào prompt các link có trong chunk và `role_vocab`/`polities` của giai đoạn làm gợi ý.
 - **Pass 2 (Relation):** chỉ được dùng thực thể lấy ra từ Pass 1.
 - Dùng few-shot riêng cho từng thời kỳ (5 bộ).
