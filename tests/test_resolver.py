@@ -275,4 +275,93 @@ def test_ly_thuong_and_ly_thuong_kiet_always_split_at_threshold_92():
     assert id2 == "local:ly-thuong-kiet"
 
 
+def test_resolver_run_generates_mentions_jsonl(tmp_path):
+    """Kiểm tra resolver.run() sinh mentions.jsonl đúng cấu trúc và khớp với entities.jsonl."""
+    from hgr.resolve.resolver import run as run_resolver
+
+    ext_dir = tmp_path / "extracted"
+    ext_dir.mkdir(parents=True, exist_ok=True)
+    res_dir = tmp_path / "resolved"
+    proc_dir = tmp_path / "processed"
+    proc_dir.mkdir(parents=True, exist_ok=True)
+
+    chunks = [
+        {"id": "c1", "page_id": 1, "page_title": "Nhà Lê", "period_id": "le"},
+        {"id": "c2", "page_id": 2, "page_title": "Nhà Nguyễn", "period_id": "nguyen"},
+    ]
+    (proc_dir / "chunks.jsonl").write_text("\n".join(json.dumps(c) for c in chunks), encoding="utf-8")
+
+    extractions = [
+        {
+            "chunk_id": "c1",
+            "entities": [{"name": "Lê Lợi", "type": "Person"}],
+            "triplets": [],
+        },
+        {
+            "chunk_id": "c2",
+            "entities": [{"name": "Nguyễn Ánh", "type": "Person"}],
+            "triplets": [],
+        },
+    ]
+    (ext_dir / "extractions.jsonl").write_text("\n".join(json.dumps(e) for e in extractions), encoding="utf-8")
+
+    run_resolver(extracted_dir=ext_dir, resolved_dir=res_dir, processed_dir=proc_dir)
+
+    mentions_file = res_dir / "mentions.jsonl"
+    assert mentions_file.exists()
+    lines = [json.loads(line) for line in mentions_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(lines) == 2
+
+    # Mỗi dòng có chunk_id và entity_id
+    assert lines[0]["chunk_id"] == "c1"
+    assert lines[0]["entity_id"] == "local:le-loi"
+    assert lines[1]["chunk_id"] == "c2"
+    assert lines[1]["entity_id"] == "local:nguyen-anh"
+
+    # Khớp với entities.jsonl
+    entities_file = res_dir / "entities.jsonl"
+    ent_ids = {json.loads(l)["id"] for l in entities_file.read_text(encoding="utf-8").splitlines() if l.strip()}
+    for row in lines:
+        assert row["entity_id"] in ent_ids
+
+
+def test_resolver_run_mentions_idempotent_and_deduplicates(tmp_path):
+    """Kiểm tra resolver.run() ghi đè idempotent (không nhân đôi) và lọc trùng lặp trong cùng chunk."""
+    from hgr.resolve.resolver import run as run_resolver
+
+    ext_dir = tmp_path / "extracted"
+    ext_dir.mkdir(parents=True, exist_ok=True)
+    res_dir = tmp_path / "resolved"
+    proc_dir = tmp_path / "processed"
+    proc_dir.mkdir(parents=True, exist_ok=True)
+
+    chunks = [{"id": "c1", "page_id": 1, "page_title": "Nhà Lê", "period_id": "le"}]
+    (proc_dir / "chunks.jsonl").write_text("\n".join(json.dumps(c) for c in chunks), encoding="utf-8")
+
+    # Cùng 1 entity được nhắc 3 lần trong cùng 1 chunk
+    extractions = [{
+        "chunk_id": "c1",
+        "entities": [
+            {"name": "Lê Lợi", "type": "Person"},
+            {"name": "Lê Lợi", "type": "Person"},
+            {"name": "Lê Lợi", "type": "Person"},
+        ],
+        "triplets": [],
+    }]
+    (ext_dir / "extractions.jsonl").write_text("\n".join(json.dumps(e) for e in extractions), encoding="utf-8")
+
+    # Lần chạy 1
+    run_resolver(extracted_dir=ext_dir, resolved_dir=res_dir, processed_dir=proc_dir)
+    mentions_file = res_dir / "mentions.jsonl"
+    lines_run1 = mentions_file.read_text(encoding="utf-8").splitlines()
+    assert len(lines_run1) == 1  # Lọc trùng lặp thành công
+
+    # Lần chạy 2 (idempotent, không nhân đôi)
+    run_resolver(extracted_dir=ext_dir, resolved_dir=res_dir, processed_dir=proc_dir)
+    lines_run2 = mentions_file.read_text(encoding="utf-8").splitlines()
+    assert len(lines_run2) == 1
+    assert lines_run1 == lines_run2
+
+
+
 

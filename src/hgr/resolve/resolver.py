@@ -415,13 +415,19 @@ class EntityResolver:
         return new_id
 
 
-def run() -> None:
-    """extractions + structured → data/resolved/entities.jsonl, relations.jsonl."""
+def run(
+    extracted_dir: Path | str | None = None,
+    resolved_dir: Path | str | None = None,
+    processed_dir: Path | str | None = None,
+) -> None:
+    """extractions + structured → data/resolved/entities.jsonl, relations.jsonl, mentions.jsonl."""
     settings = get_settings()
     project_root = Path(settings.project_root)
-    extracted_dir = project_root / settings.paths.data_dir / "extracted"
-    resolved_dir = project_root / settings.paths.data_dir / "resolved"
+    extracted_dir = Path(extracted_dir) if extracted_dir else project_root / settings.paths.data_dir / "extracted"
+    resolved_dir = Path(resolved_dir) if resolved_dir else project_root / settings.paths.data_dir / "resolved"
+    processed_dir = Path(processed_dir) if processed_dir else project_root / settings.paths.data_dir / "processed"
     resolved_dir.mkdir(parents=True, exist_ok=True)
+
 
     resolver = EntityResolver(settings.resolve.fuzzy_threshold, settings.resolve.event_year_tolerance)
 
@@ -433,7 +439,7 @@ def run() -> None:
         resolver.load_periods(periods_path)
 
     # 2. Nạp alias từ bài viết ingest (processed/articles.jsonl hoặc raw/*/articles.jsonl)
-    articles_path = project_root / settings.paths.data_dir / "processed" / "articles.jsonl"
+    articles_path = processed_dir / "articles.jsonl"
     if articles_path.exists():
         resolver.load_articles(articles_path)
     else:
@@ -441,19 +447,22 @@ def run() -> None:
             resolver.load_articles(raw_path)
 
     article_by_name: dict[str, dict] = {}
-    chunks_path = project_root / settings.paths.data_dir / "processed" / "chunks.jsonl"
+    chunks_path = processed_dir / "chunks.jsonl"
     if chunks_path.exists():
         for line in chunks_path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 chunk = json.loads(line)
-                article_by_name[chunk["page_title"].casefold()] = {
-                    "qid": chunk.get("qid"),
-                    "page_id": chunk.get("page_id"),
-                    "period_ids": chunk.get("period_ids") or [chunk.get("period_id")],
-                }
+                title = chunk.get("page_title") or chunk.get("title")
+                if title:
+                    article_by_name[title.casefold()] = {
+                        "qid": chunk.get("qid"),
+                        "page_id": chunk.get("page_id"),
+                        "period_ids": chunk.get("period_ids") or [chunk.get("period_id")],
+                    }
 
     entity_by_id: dict[str, dict] = {}
     relation_rows: list[dict] = []
+    mention_pairs: set[tuple[str, str]] = set()
 
     def register_entity(name: str, entity: dict | None = None, period_ids: list[str] | None = None) -> str:
         entity = entity or {}
@@ -505,13 +514,17 @@ def run() -> None:
             if not line.strip():
                 continue
             item = json.loads(line)
-            chunk = chunks_by_id.get(item.get("chunk_id"), {})
+            cid = item.get("chunk_id")
+            chunk = chunks_by_id.get(cid, {})
             period_ids = chunk.get("period_ids") or [chunk.get("period_id")]
             entity_ids: dict[str, str] = {}
             for ent in item.get("entities", []):
                 name = ent.get("name")
                 if name:
-                    entity_ids[name] = register_entity(name, ent, period_ids)
+                    eid = register_entity(name, ent, period_ids)
+                    entity_ids[name] = eid
+                    if cid and eid:
+                        mention_pairs.add((str(cid), str(eid)))
             for trip in item.get("triplets", []):
                 head = str(trip.get("head") or chunk.get("page_title") or "")
                 tail = str(trip.get("tail") or "")
@@ -536,6 +549,10 @@ def run() -> None:
                     },
                     period_ids=period_ids,
                 )
+                if cid and head_id:
+                    mention_pairs.add((str(cid), str(head_id)))
+                if cid and tail_id:
+                    mention_pairs.add((str(cid), str(tail_id)))
                 relation_rows.append({
                     "id": f"rel:{head_id}:{trip.get('relation', 'RELATED_TO')}:{tail_id}",
                     "head_id": head_id,
@@ -590,5 +607,19 @@ def run() -> None:
         for row in relation_rows:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
-    print(f"[OK] {len(entity_by_id)} entity → {out_entities.relative_to(project_root)}")
-    print(f"[OK] {len(relation_rows)} relation → {out_rel.relative_to(project_root)}")
+    out_mentions = resolved_dir / "mentions.jsonl"
+    with out_mentions.open("w", encoding="utf-8") as f:
+        for cid, eid in sorted(mention_pairs):
+            f.write(json.dumps({"chunk_id": cid, "entity_id": eid}, ensure_ascii=False) + "\n")
+
+    try:
+        e_rel = out_entities.relative_to(project_root)
+        r_rel = out_rel.relative_to(project_root)
+        m_rel = out_mentions.relative_to(project_root)
+    except ValueError:
+        e_rel, r_rel, m_rel = out_entities, out_rel, out_mentions
+
+    print(f"[OK] {len(entity_by_id)} entity → {e_rel}")
+    print(f"[OK] {len(relation_rows)} relation → {r_rel}")
+    print(f"[OK] {len(mention_pairs)} mention → {m_rel}")
+
