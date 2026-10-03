@@ -221,7 +221,6 @@ def chunk():
                 min_tokens=settings.chunk.min_tokens,
                 max_year=settings.scope.max_year,
                 drop_post_cutoff=settings.chunk.drop_post_cutoff,
-                max_chunks_b=settings.extract.max_chunks_b,
             )
             for c in chunks:
                 f.write(json.dumps(c, ensure_ascii=False) + "\n")
