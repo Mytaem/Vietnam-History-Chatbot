@@ -20,6 +20,13 @@ class RetrieveRequest(BaseModel):
     mode: Literal["graphrag", "vector"] = "graphrag"
 
 
+class DocumentAskRequest(BaseModel):
+    question: str
+    document_name: str
+    document_text: str
+    history: list[dict] = []
+
+
 class Citation(BaseModel):
     n: int
     title: str

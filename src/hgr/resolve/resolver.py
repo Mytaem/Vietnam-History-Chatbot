@@ -13,6 +13,15 @@ from rapidfuzz import fuzz
 from hgr.config import get_settings
 
 
+QID_RE = re.compile(r"^(?:qid:)?(Q\d+)$")
+
+
+def _valid_qid(value) -> str | None:
+    """Chỉ nhận mã Wikidata thật (Q + số). LLM có thể điền tên/năm vào trường qid."""
+    m = QID_RE.match(str(value or "").strip())
+    return m.group(1) if m else None
+
+
 def _clean(text: str) -> str:
     return unicodedata.normalize("NFC", (text or "")).strip()
 
@@ -307,9 +316,9 @@ class EntityResolver:
         chunk_links = chunk_links or []
 
         # 1. Có QID Wikidata -> id = "qid:Q<số>" (ưu tiên cao nhất, không qua fuzzy)
-        qid = entity.get("qid")
+        qid = _valid_qid(entity.get("qid"))
         if qid:
-            return f"qid:{str(qid).removeprefix('qid:')}"
+            return f"qid:{qid}"
 
         name = _clean(str(entity.get("name") or entity.get("head") or ""))
         if not name:
@@ -365,9 +374,9 @@ class EntityResolver:
                 continue
             clean_target = _clean(target)
             if clean_target.casefold() == name.casefold():
-                link_qid = link.get("qid") if isinstance(link, dict) else None
+                link_qid = _valid_qid(link.get("qid")) if isinstance(link, dict) else None
                 if link_qid:
-                    return f"qid:{str(link_qid).removeprefix('qid:')}"
+                    return f"qid:{link_qid}"
                 target_cid = self.alias_to_id.get(clean_target.casefold())
                 if target_cid:
                     return target_cid
@@ -463,7 +472,7 @@ def run(
     def register_entity(name: str, entity: dict | None = None, period_ids: list[str] | None = None) -> str:
         entity = entity or {}
         known_article = article_by_name.get(name.casefold(), {})
-        qid = entity.get("qid") or known_article.get("qid")
+        qid = _valid_qid(known_article.get("qid"))
         # Backbone (trieu_dai/quoc_hieu/kinh_do/dia_danh.yaml) đã biết type chắc chắn cho tên này: luôn ưu
         # tiên hơn type đoán từ domain/range của Tier S hoặc type do LLM gán lệch. Thiếu bước này, "Nhà Trần"
         # (Polity, từ backbone) và "Nhà Trần" (Person, đoán sai từ domain[0] của PARTICIPATED_IN/SUCCEEDED đa

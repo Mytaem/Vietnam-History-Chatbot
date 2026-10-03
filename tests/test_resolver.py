@@ -459,3 +459,14 @@ def test_structured_year_only_applies_to_the_side_it_belongs_to(tmp_path):
     assert entities["Trận Bạch Đằng (1288)"]["start_year"] == 1288
     assert entities["Quang Trung"]["start_year"] == 1752
     assert entities["Hồ Phi Phúc"]["start_year"] is None  # không phải năm sinh/mất của Quang Trung
+
+
+def test_llm_emitted_non_qid_is_not_used_as_wikidata_id():
+    """LLM điền tên/năm vào trường qid (vd "Âu Lạc", "208 TCN"); những giá trị này không được thành ID qid:."""
+    from hgr.resolve.resolver import _valid_qid
+
+    assert _valid_qid("Âu Lạc") is None
+    assert _valid_qid("208 TCN") is None
+    assert _valid_qid("Q210417") == "Q210417"
+    assert _valid_qid("qid:Q210417") == "Q210417"
+    assert _valid_qid(None) is None

@@ -39,3 +39,15 @@ def answer(question: str, context: str, client, history: list[dict] | None = Non
         {"role": "user", "content": f"NGỮ CẢNH:\n{context}\n\nCÂU HỎI: {question}"},
     ]
     yield from client.chat(messages, stream=True)
+
+
+SIGNIFICANCE_PROMPT = """Dựa CHỈ trên NGỮ CẢNH dưới đây, viết tối đa 2 câu tiếng Việt nêu Ý NGHĨA LỊCH SỬ của sự kiện/nhân vật/thời kỳ trong câu hỏi.
+Nếu ngữ cảnh không nói về ý nghĩa, hoặc không đủ cơ sở, trả về đúng một chuỗi rỗng. Không thêm trích dẫn, không mở đầu bằng "Ý nghĩa"."""
+
+
+def significance(question: str, context: str, client) -> str:
+    messages = [
+        {"role": "system", "content": SIGNIFICANCE_PROMPT},
+        {"role": "user", "content": f"NGỮ CẢNH:\n{context}\n\nCÂU HỎI: {question}"},
+    ]
+    return (client.chat(messages, stream=False) or "").strip()

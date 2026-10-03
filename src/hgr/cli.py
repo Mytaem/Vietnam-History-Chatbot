@@ -287,6 +287,28 @@ def resolve():
 
 
 @app.command()
+def geo():
+    """Lấy tọa độ địa danh từ Wikidata (P625) → entities.jsonl và Neo4j. Chạy sau 'hgr load'. (M7)"""
+    from hgr.config import get_settings
+    from hgr.graph.store import Neo4jStore
+    from hgr.ingest.geo import enrich_places
+
+    settings = get_settings()
+    store = Neo4jStore(
+        settings.neo4j.uri, settings.neo4j.user, settings.neo4j.password, settings.neo4j.database
+    )
+    try:
+        if not store.ping():
+            _fail(f"Không kết nối được Neo4j ({settings.neo4j.uri}); hãy chạy 'docker compose up -d'.")
+            raise typer.Exit(1)
+        resolved = Path(settings.project_root) / settings.paths.data_dir / "resolved"
+        total, found = enrich_places(store, resolved, settings.ingest.user_agent)
+        _ok(f"Tọa độ: {found}/{total} địa danh có QID được lấy từ Wikidata")
+    finally:
+        store.close()
+
+
+@app.command()
 def load():
     """Nạp Era/Period/backbone/Article/Chunk/Entity/Relation vào Neo4j. (M5)"""
     from hgr.config import get_settings

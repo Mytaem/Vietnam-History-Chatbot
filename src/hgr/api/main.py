@@ -9,9 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 
 from hgr import __version__
-from hgr.api.models import ChatRequest, RetrieveRequest
+from hgr.api.models import ChatRequest, DocumentAskRequest, RetrieveRequest
 from hgr.config import get_settings
+from hgr.generate import document_qa
 from hgr.generate.answerer import answer as generate_answer
+from hgr.generate.answerer import significance as generate_significance
 from hgr.generate.context_builder import build_context
 from hgr.graph.store import Neo4jStore
 from hgr.llm.ollama_client import OllamaClient
@@ -104,8 +106,10 @@ async def chat(req: ChatRequest):
             {(n["start_year"], n.get("display_name") or n.get("name"))
              for n in result.subgraph.get("nodes", []) if n.get("start_year") is not None}
         )
+        meaning = generate_significance(req.question, context, app.state.client) if citations else ""
         yield {"event": "done", "data": json.dumps({
             "answer": full_answer,
+            "significance": meaning,
             "citations": citations,
             "subgraph": result.subgraph,
             "timeline": [{"year": y, "label": label} for y, label in timeline],
@@ -177,6 +181,77 @@ def entity_detail(entity_id: str) -> dict:
     row = rows[0]
     entity = {k: v for k, v in row["entity"].items() if k != "embedding"}
     return {"entity": entity, "neighbours": [n for n in row["neighbours"] if n["id"]]}
+
+
+@app.post("/document/ask")
+async def document_ask(req: DocumentAskRequest):
+    async def event_stream():
+        chunks = document_qa.split_chunks(req.document_text)
+        if not chunks:
+            yield {"event": "done", "data": json.dumps({
+                "answer": "Tài liệu không có nội dung văn bản để trả lời.", "citations": [],
+                "significance": "", "subgraph": {}, "timeline": [], "out_of_scope": False,
+            }, ensure_ascii=False)}
+            return
+        hits = document_qa.top_passages(req.question, chunks, app.state.client)
+        citations = [
+            {"n": n, "title": req.document_name, "section": f"Đoạn {n}", "url": "", "quote": text}
+            for n, text, _ in hits
+        ]
+        full_answer = ""
+        for token in document_qa.answer(req.question, hits, app.state.client, req.history):
+            full_answer += token
+            yield {"event": "token", "data": token}
+        yield {"event": "done", "data": json.dumps({
+            "answer": full_answer, "citations": citations, "significance": "",
+            "subgraph": {}, "timeline": [], "out_of_scope": False,
+        }, ensure_ascii=False)}
+
+    return EventSourceResponse(event_stream())
+
+
+@app.get("/entity/{entity_id}/passages")
+def entity_passages(entity_id: str, limit: int = 6) -> dict:
+    rows = app.state.store.run(
+        "MATCH (a:Article)-[:ABOUT]->(e:Entity {id: $id}) MATCH (a)-[:HAS_CHUNK]->(c:Chunk) "
+        "RETURN c.id AS id, c.page_title AS title, c.section_path AS section, c.text AS text, "
+        "c.min_year AS year ORDER BY coalesce(c.min_year, 0), id LIMIT $limit",
+        id=entity_id, limit=limit,
+    )
+    return {"items": rows}
+
+
+@app.get("/periods/{period_id}/items")
+def period_items(period_id: str, limit: int = 60) -> dict:
+    rows = app.state.store.run(
+        "MATCH (p:Period {id: $id}) MATCH (e:Entity)-[:IN_PERIOD]->(p) "
+        "WHERE 'Event' IN labels(e) OR 'Person' IN labels(e) "
+        "RETURN e.id AS id, coalesce(e.display_name, e.name) AS name, "
+        "head([l IN labels(e) WHERE l <> 'Entity'] + ['Entity']) AS type, "
+        "e.start_year AS start_year, e.end_year AS end_year, coalesce(e.degree, 0) AS degree "
+        "ORDER BY e.start_year IS NULL, e.start_year, name LIMIT $limit",
+        id=period_id, limit=limit,
+    )
+    return {"items": rows}
+
+
+@app.get("/entities")
+def list_entities(type: str | None = None, q: str | None = None, limit: int = 60, skip: int = 0,
+                  period: str | None = None) -> dict:
+    rows = app.state.store.run(
+        "MATCH (e:Entity) "
+        "WHERE ($type IS NULL OR $type IN labels(e)) "
+        "AND ($q IS NULL OR toLower(coalesce(e.display_name, e.name, '')) CONTAINS toLower($q)) "
+        "AND ($period IS NULL OR EXISTS { MATCH (e)-[:IN_PERIOD]->(:Period {id: $period}) }) "
+        "WITH e ORDER BY coalesce(e.degree, 0) DESC, coalesce(e.display_name, e.name) "
+        "SKIP $skip LIMIT $limit "
+        "RETURN e.id AS id, coalesce(e.display_name, e.name) AS name, "
+        "head([l IN labels(e) WHERE l <> 'Entity'] + ['Entity']) AS type, "
+        "e.start_year AS start_year, e.end_year AS end_year, coalesce(e.degree, 0) AS degree, e.lat AS lat, e.lon AS lon, "
+        "coalesce(e.period_ids, []) AS period_ids",
+        type=type, q=q or None, skip=skip, limit=limit, period=period or None,
+    )
+    return {"items": rows}
 
 
 @app.get("/stats")
