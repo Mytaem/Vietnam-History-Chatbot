@@ -312,6 +312,7 @@ def run(
     backbone_dir: Path | str | None = None,
     output_dir: Path | str | None = None,
     prompt_version: str = PROMPT_VERSION,
+    max_chunks_b: int | None = None,
 ) -> dict:
     """Điều phối toàn bộ quá trình trích xuất Part B.
 
@@ -365,6 +366,8 @@ def run(
 
     # 4. Xác định danh sách period_id hợp lệ nếu có lọc theo era
     era_periods = _get_era_period_ids(era) if era else None
+    if max_chunks_b is None:
+        max_chunks_b = int(settings.extract.max_chunks_b)
 
     processed_count = 0
     cache_hit_count = 0
@@ -393,6 +396,10 @@ def run(
 
             # Lọc tier
             if tier and chunk.get("tier") != tier:
+                continue
+
+            # Tier B chỉ trích xuất N chunk đầu; các chunk còn lại vẫn nằm trong chunks.jsonl để embed (PLAN 3.1)
+            if chunk.get("tier") == "B" and chunk.get("chunk_index", 0) >= max_chunks_b:
                 continue
 
             # Resume: bỏ qua chunk đã xử lý

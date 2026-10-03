@@ -443,7 +443,8 @@ def run(
     if articles_path.exists():
         resolver.load_articles(articles_path)
     else:
-        for raw_path in sorted((project_root / settings.paths.data_dir / "raw").glob("*/articles.jsonl")):
+        # raw/ nằm cạnh processed/ được truyền vào, không phải data/ của dự án (test cô lập, nhiều bộ dữ liệu).
+        for raw_path in sorted((processed_dir.parent / "raw").glob("*/articles.jsonl")):
             resolver.load_articles(raw_path)
 
     article_by_name: dict[str, dict] = {}

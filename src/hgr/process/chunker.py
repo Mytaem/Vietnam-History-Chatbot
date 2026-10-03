@@ -82,22 +82,9 @@ def chunk_article(
     min_tokens: int = 80,
     max_year: int = 1945,
     drop_post_cutoff: bool = True,
-    max_chunks_b: int | None = None,
 ) -> list[dict]:
     """→ [{id, page_title, section_path, header, text, links[], years[], min_year, max_year,
           period_id, tier}]"""
-    if max_chunks_b is None:
-        try:
-            from hgr.config import get_settings
-            max_chunks_b = int(get_settings().extract.max_chunks_b)
-        except Exception:
-            max_chunks_b = 3
-
-    tier = article.get("tier")
-    is_tier_b = (tier == "B")
-    if is_tier_b and max_chunks_b <= 0:
-        return []
-
     period = next((p for p in all_periods() if p.id == article.get("period_id")), None)
     hint = (period.start, period.end) if period else None
     period_label = f"{period.name} ({_fmt_year(period.start)}–{_fmt_year(period.end)})" if period else "?"
@@ -150,13 +137,11 @@ def chunk_article(
             "legendary": any(s.legendary for s in spans),
             "period_id": article.get("period_id"),
             "period_ids": article.get("period_ids", []),
-            "tier": tier,
+            "tier": article.get("tier"),
         }
         if drop_post_cutoff and piece["path"] != LEAD and is_post_cutoff(chunk, max_year):
             continue
         chunks.append(chunk)
-        if is_tier_b and len(chunks) >= max_chunks_b:
-            break
     return chunks
 
 

@@ -54,83 +54,36 @@ def test_cutoff_1945_drops_body_but_keeps_lead():
     assert not is_post_cutoff({"min_year": None})
 
 
-def test_tier_b_limited_by_max_chunks_b():
-    sections = [(f"Mục {i}", f"Đoạn văn lịch sử số {i} với đủ câu để tạo chunk riêng biệt. Trần Hưng Đạo sinh năm 1228 và mất năm 1300.") for i in range(10)]
-    article = make_article(sections, tier="B")
-    chunks = chunk_article(article, min_tokens=5)
-    # Mặc định trong settings.yaml extract.max_chunks_b = 3
-    assert len(chunks) == 3
-    assert [c["section_path"] for c in chunks] == ["Mục 0", "Mục 1", "Mục 2"]
-    assert [c["chunk_index"] for c in chunks] == [0, 1, 2]
-    for c in chunks:
-        assert c["tier"] == "B"
+def _ten_sections():
+    return [(f"Mục {i}", f"Đoạn văn lịch sử số {i} với đủ câu để tạo chunk riêng biệt. Trần Hưng Đạo sinh năm 1228 và mất năm 1300.") for i in range(10)]
 
 
-def test_tier_a_not_limited():
-    sections = [(f"Mục {i}", f"Đoạn văn lịch sử số {i} với đủ câu để tạo chunk riêng biệt. Trần Hưng Đạo sinh năm 1228 và mất năm 1300.") for i in range(10)]
-    article = make_article(sections, tier="A")
-    chunks = chunk_article(article, min_tokens=5)
+def test_tier_b_chunks_are_all_kept_for_embedding():
+    # PLAN 3.1: mọi chunk đều được embed; giới hạn max_chunks_b chỉ áp dụng ở bước extract.
+    chunks = chunk_article(make_article(_ten_sections(), tier="B"), min_tokens=5)
     assert len(chunks) == 10
     assert [c["chunk_index"] for c in chunks] == list(range(10))
+    assert all(c["tier"] == "B" for c in chunks)
 
 
-def test_tier_b_custom_and_dynamic_settings(monkeypatch):
-    sections = [(f"Mục {i}", f"Đoạn văn lịch sử số {i} với đủ câu để tạo chunk riêng biệt. Trần Hưng Đạo sinh năm 1228 và mất năm 1300.") for i in range(10)]
-    article = make_article(sections, tier="B")
-
-    # Truyền trực tiếp max_chunks_b = 2
-    chunks_2 = chunk_article(article, min_tokens=5, max_chunks_b=2)
-    assert len(chunks_2) == 2
-    assert [c["chunk_index"] for c in chunks_2] == [0, 1]
-
-    # Monkeypatch settings
-    from hgr import config
-    real_settings = config.get_settings()
-    mock_settings = config.Settings(dict(real_settings))
-    mock_extract = dict(mock_settings.get("extract", {}))
-    mock_extract["max_chunks_b"] = 4
-    mock_settings["extract"] = mock_extract
-
-    monkeypatch.setattr(config, "get_settings", lambda *args, **kwargs: mock_settings)
-    chunks_4 = chunk_article(article, min_tokens=5, max_chunks_b=None)
-    assert len(chunks_4) == 4
-    assert [c["chunk_index"] for c in chunks_4] == [0, 1, 2, 3]
-
-
-def test_extractor_tier_b_on_chunked_data(tmp_path):
+def test_extractor_limits_tier_b_to_first_chunks(tmp_path):
     import json
-    from hgr.extract.extractor import run
     from unittest.mock import MagicMock
 
-    # Tạo chunks.jsonl có cả chunk Tier A và Tier B (đã áp dụng chunk_article)
-    sections = [(f"Mục {i}", f"Đoạn {i}. Trần Hưng Đạo sinh năm 1228.") for i in range(10)]
-    art_a = make_article(sections, tier="A")
+    from hgr.extract.extractor import run
+
+    art_a = make_article(_ten_sections(), tier="A")
     art_a["page_id"] = 101
-    art_b = make_article(sections, tier="B")
+    art_b = make_article(_ten_sections(), tier="B")
     art_b["page_id"] = 102
-
-    chunks_a = chunk_article(art_a, min_tokens=5)
-    chunks_b = chunk_article(art_b, min_tokens=5, max_chunks_b=3)
-    assert len(chunks_a) == 10
-    assert len(chunks_b) == 3
-
+    chunks = chunk_article(art_a, min_tokens=5) + chunk_article(art_b, min_tokens=5)
     chunks_file = tmp_path / "chunks.jsonl"
-    with open(chunks_file, "w", encoding="utf-8") as f:
-        for c in chunks_a + chunks_b:
-            f.write(json.dumps(c, ensure_ascii=False) + "\n")
+    chunks_file.write_text("".join(json.dumps(c, ensure_ascii=False) + "\n" for c in chunks), encoding="utf-8")
 
-    # Mock OllamaClient trả về entities/triplets rỗng
     mock_client = MagicMock()
     mock_client.chat_json.return_value = {"entities": [], "triplets": []}
 
-    out_dir = tmp_path / "extracted"
-    stats = run(
-        chunks_path=str(chunks_file),
-        tier="B",
-        output_dir=str(out_dir),
-        client=mock_client,
-    )
-    # Số chunk xử lý đúng bằng 3 chunk của Tier B
-    assert stats["processed"] == 3
-
-
+    stats = run(chunks_path=str(chunks_file), tier="B", output_dir=str(tmp_path / "b3"), client=mock_client)
+    assert stats["processed"] == 3  # extract.max_chunks_b mặc định = 3
+    stats = run(chunks_path=str(chunks_file), output_dir=str(tmp_path / "all"), client=mock_client, max_chunks_b=2)
+    assert stats["processed"] == 10 + 2
