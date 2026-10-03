@@ -13,6 +13,13 @@ class ChatRequest(BaseModel):
     mode: Literal["graphrag", "vector"] = "graphrag"
 
 
+class RetrieveRequest(BaseModel):
+    question: str
+    history: list[dict] = []
+    period_filter: Optional[tuple[int, int]] = None
+    mode: Literal["graphrag", "vector"] = "graphrag"
+
+
 class Citation(BaseModel):
     n: int
     title: str

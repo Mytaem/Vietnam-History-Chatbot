@@ -49,7 +49,7 @@ Nguyên tắc chung là tối giản: **chỉ dùng một database (Neo4j)** cho
 | Tầng | Công nghệ | Ghi chú |
 |---|---|---|
 | LLM server | **Ollama** | `num_ctx=8192`, `OLLAMA_NUM_PARALLEL=2` |
-| LLM trích xuất và trả lời | **`qwen3:4b-instruct-2507`** (Q4_K_M, ~2.6 GB) | Tiếng Việt tốt, không có chế độ thinking. Model dự phòng: `qwen2.5:3b-instruct`. Muốn chất lượng cao hơn thì dùng `qwen3:8b` (~5.2 GB), đổi lại chậm hơn |
+| LLM trích xuất và trả lời | **`qwen3:4b-instruct`** (Q4_K_M, ~2.6 GB) | Tiếng Việt tốt, không có chế độ thinking. Model dự phòng: `qwen2.5:3b-instruct`. Muốn chất lượng cao hơn thì dùng `qwen3:8b` (~5.2 GB), đổi lại chậm hơn |
 | Embedding | **`bge-m3`** chạy qua Ollama (dim 1024) | Đa ngôn ngữ, ngữ cảnh 8K |
 | Reranker (tùy chọn) | `BAAI/bge-reranker-v2-m3`, chạy CPU | Bật bằng `retrieval.rerank: true`. Mỗi câu hỏi tốn thêm khoảng 1–2 giây |
 | Graph, Vector, Fulltext | **Neo4j 5.x Community** (Docker) + APOC | Vector index native và fulltext Lucene |
@@ -329,7 +329,7 @@ Mọi phép lọc thời gian đều dùng **giao nhau giữa hai khoảng** (ov
                                              ▼
          Streamlit UI (:8501): Chat | Đồ thị | Timeline | Nguồn | Khám phá giai đoạn | Debug
 
-         Ollama (:11434): qwen3:4b-instruct-2507 (chat/extract), bge-m3 (embed)
+         Ollama (:11434): qwen3:4b-instruct (chat/extract), bge-m3 (embed)
 ```
 
 ### Mô hình dữ liệu Neo4j
@@ -696,8 +696,8 @@ RETURN e.id ORDER BY e.degree DESC LIMIT $top
 ## 7. Cấu hình chính (`configs/settings.yaml`)
 
 ```yaml
-llm:      {host: http://localhost:11434, chat_model: qwen3:4b-instruct-2507,
-           extract_model: qwen3:4b-instruct-2507, embed_model: bge-m3,
+llm:      {host: http://localhost:11434, chat_model: qwen3:4b-instruct,
+           extract_model: qwen3:4b-instruct, embed_model: bge-m3,
            num_ctx: 8192, temperature: 0.0, timeout_s: 120, workers: 2}
 neo4j:    {uri: bolt://localhost:7687, user: neo4j, password: ${NEO4J_PASSWORD}}
 scope:    {max_year: 1945, periods_file: configs/periods.yaml, backbone_dir: configs/backbone}

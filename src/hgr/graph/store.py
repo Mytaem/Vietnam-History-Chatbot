@@ -14,7 +14,10 @@ log = get_logger(__name__)
 class Neo4jStore:
     def __init__(self, uri: str, user: str, password: str, database: str = "neo4j"):
         self.uri, self.user, self.password, self.database = uri, user, password, database
-        self._driver = GraphDatabase.driver(uri, auth=(user, password))
+        # notifications_min_severity="OFF": truy hồi dùng property tùy loại quan hệ (rel.role, rel.side...),
+        # Neo4j không biết tĩnh thực thể nào có property gì nên luôn in cảnh báo "does not exist" dù dữ liệu
+        # đúng (coalesce trả null bình thường) — tắt để log CLI/API sạch, không ảnh hưởng tới lỗi thật.
+        self._driver = GraphDatabase.driver(uri, auth=(user, password), notifications_min_severity="OFF")
 
     def ping(self) -> bool:
         try:

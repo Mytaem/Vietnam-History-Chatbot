@@ -365,3 +365,97 @@ def test_resolver_run_mentions_idempotent_and_deduplicates(tmp_path):
 
 
 
+
+
+def test_structured_triplet_type_uses_ontology_domain_range_not_blanket_polity(tmp_path):
+    """Trước đây mọi head/tail của Tier S bị gán cứng 'Polity' trừ CAPITAL_OF, mistype gần hết Person
+    (CHILD_OF, SPOUSE_OF, RULED, PARTICIPATED_IN...) khi họ chưa được LLM trích xuất từ trước."""
+    from hgr.resolve.resolver import run as run_resolver
+
+    ext_dir = tmp_path / "extracted"
+    ext_dir.mkdir(parents=True, exist_ok=True)
+    res_dir = tmp_path / "resolved"
+    proc_dir = tmp_path / "processed"
+    proc_dir.mkdir(parents=True, exist_ok=True)
+    (proc_dir / "chunks.jsonl").write_text("", encoding="utf-8")
+
+    structured = [
+        {"head": "Trần Hưng Đạo", "relation": "CHILD_OF", "tail": "Trần Liễu", "source": "wikidata"},
+        {"head": "Trần Hưng Đạo", "relation": "PARTICIPATED_IN", "tail": "Trận Bạch Đằng (1288)", "source": "wikidata"},
+        {"head": "Cổ Loa", "relation": "CAPITAL_OF", "tail": "Âu Lạc", "source": "backbone"},
+    ]
+    (ext_dir / "structured.jsonl").write_text(
+        "\n".join(json.dumps(t, ensure_ascii=False) for t in structured), encoding="utf-8"
+    )
+
+    run_resolver(extracted_dir=ext_dir, resolved_dir=res_dir, processed_dir=proc_dir)
+    entities = {
+        json.loads(l)["name"]: json.loads(l)["type"]
+        for l in (res_dir / "entities.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()
+    }
+    assert entities["Trần Hưng Đạo"] == "Person"
+    assert entities["Trần Liễu"] == "Person"
+    assert entities["Trận Bạch Đằng (1288)"] == "Event"
+    assert entities["Cổ Loa"] == "Place"
+    assert entities["Âu Lạc"] == "Polity"
+
+
+def test_structured_type_guess_never_overrides_known_backbone_type(tmp_path):
+    """SUCCEEDED/PARTICIPATED_IN có domain đa loại ([Person, Polity, ...]); đoán domain[0]='Person' làm
+    'Nhà Trần' (Polity theo backbone) bị tách thành 2 entity khác id khi nó cũng là head/tail của quan hệ
+    đó. Backbone đã biết type phải luôn thắng type đoán từ domain/range."""
+    from hgr.resolve.resolver import run as run_resolver
+
+    ext_dir = tmp_path / "extracted"
+    ext_dir.mkdir(parents=True, exist_ok=True)
+    res_dir = tmp_path / "resolved"
+    proc_dir = tmp_path / "processed"
+    proc_dir.mkdir(parents=True, exist_ok=True)
+    (proc_dir / "chunks.jsonl").write_text("", encoding="utf-8")
+
+    structured = [
+        {"head": "Nhà Hồ", "relation": "SUCCEEDED", "tail": "Nhà Trần"},
+        {"head": "Nhà Trần", "relation": "PARTICIPATED_IN", "tail": "Trận Bạch Đằng (1288)"},
+    ]
+    (ext_dir / "structured.jsonl").write_text(
+        "\n".join(json.dumps(t, ensure_ascii=False) for t in structured), encoding="utf-8"
+    )
+
+    run_resolver(extracted_dir=ext_dir, resolved_dir=res_dir, processed_dir=proc_dir)
+    entities = [json.loads(l) for l in (res_dir / "entities.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    tran = [e for e in entities if e["name"] == "Nhà Trần"]
+    assert len(tran) == 1, f"'Nhà Trần' bị tách thành {len(tran)} entity: {tran}"
+    assert tran[0]["type"] == "Polity"
+
+
+def test_structured_year_only_applies_to_the_side_it_belongs_to(tmp_path):
+    """start_year/end_year của triplet Tier S là năm của bài viết chủ thể; P710 (participant) có
+    head_is_target=True nên head=bên tham chiến, tail=article(sự kiện) -> năm thuộc tail, không phải head.
+    Gán nhầm cho cả hai bên làm sai năm sinh/mất của vợ/cha/người kế nhiệm khi head là Person."""
+    from hgr.resolve.resolver import run as run_resolver
+
+    ext_dir = tmp_path / "extracted"
+    ext_dir.mkdir(parents=True, exist_ok=True)
+    res_dir = tmp_path / "resolved"
+    proc_dir = tmp_path / "processed"
+    proc_dir.mkdir(parents=True, exist_ok=True)
+    (proc_dir / "chunks.jsonl").write_text("", encoding="utf-8")
+
+    structured = [
+        {"head": "Nhà Trần", "relation": "PARTICIPATED_IN", "tail": "Trận Bạch Đằng (1288)",
+         "start_year": 1288, "end_year": 1288, "year_target": "tail"},
+        {"head": "Quang Trung", "relation": "CHILD_OF", "tail": "Hồ Phi Phúc",
+         "start_year": 1752, "end_year": 1792, "year_target": "head"},
+    ]
+    (ext_dir / "structured.jsonl").write_text(
+        "\n".join(json.dumps(t, ensure_ascii=False) for t in structured), encoding="utf-8"
+    )
+    run_resolver(extracted_dir=ext_dir, resolved_dir=res_dir, processed_dir=proc_dir)
+    entities = {
+        json.loads(l)["name"]: json.loads(l)
+        for l in (res_dir / "entities.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()
+    }
+    assert entities["Nhà Trần"]["start_year"] is None  # không phải năm trận đánh
+    assert entities["Trận Bạch Đằng (1288)"]["start_year"] == 1288
+    assert entities["Quang Trung"]["start_year"] == 1752
+    assert entities["Hồ Phi Phúc"]["start_year"] is None  # không phải năm sinh/mất của Quang Trung

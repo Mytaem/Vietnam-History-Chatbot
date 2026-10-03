@@ -1,8 +1,8 @@
 # Cấu hình chính - xem PLAN.md Mục 7
 llm:
   host: http://localhost:11434          # ghi đè bằng OLLAMA_HOST trong .env
-  chat_model: qwen3:4b-instruct-2507
-  extract_model: qwen3:4b-instruct-2507
+  chat_model: qwen3:4b-instruct
+  extract_model: qwen3:4b-instruct
   embed_model: bge-m3
   embed_dim: 1024
   num_ctx: 8192

@@ -11,3 +11,4 @@ data/**
 !data/**/.gitkeep
 
 eval/report.md
+.scratch/

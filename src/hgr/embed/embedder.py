@@ -44,30 +44,32 @@ def _embed_file(store, client, path: Path, label: str, text_for_row, batch_size:
     flush()
     return count
 
-def embed_chunks(store, client, batch_size: int = 32) -> int:
+def embed_chunks(store, client, batch_size: int = 32, chunks_path: Path | str | None = None) -> int:
     if store is None or client is None:
         return 0
-    settings = get_settings()
-    path = Path(settings.project_root) / settings.paths.data_dir / "processed" / "chunks.jsonl"
+    if chunks_path is None:
+        settings = get_settings()
+        chunks_path = Path(settings.project_root) / settings.paths.data_dir / "processed" / "chunks.jsonl"
     return _embed_file(
         store,
         client,
-        path,
+        Path(chunks_path),
         "Chunk",
         lambda row: f"{row.get('header', '')}\n{row.get('text', '')}",
         batch_size,
     )
 
 
-def embed_entities(store, client, batch_size: int = 32) -> int:
+def embed_entities(store, client, batch_size: int = 32, entities_path: Path | str | None = None) -> int:
     if store is None or client is None:
         return 0
-    settings = get_settings()
-    path = Path(settings.project_root) / settings.paths.data_dir / "resolved" / "entities.jsonl"
+    if entities_path is None:
+        settings = get_settings()
+        entities_path = Path(settings.project_root) / settings.paths.data_dir / "resolved" / "entities.jsonl"
     return _embed_file(
         store,
         client,
-        path,
+        Path(entities_path),
         "Entity",
         lambda row: f"{row.get('name', '')}\n{row.get('description', '')}",
         batch_size,

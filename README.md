@@ -4,7 +4,7 @@ Chatbot hỏi đáp lịch sử Việt Nam **từ tiền sử đến hết năm 
 
 Kế hoạch chi tiết (kiến trúc, phân kỳ, workflow, milestone) nằm trong [PLAN.md](PLAN.md).
 
-> **Trạng thái:** xong M1 (hạ tầng, `hgr doctor`), M2 (phân kỳ) và M3 (thu thập + xử lý dữ liệu). Các module từ M4 (trích xuất) trở đi đang triển khai (xem PLAN.md Mục 8).
+> **Trạng thái:** xong M1–M7 (hạ tầng, phân kỳ, thu thập/xử lý dữ liệu, trích xuất, resolve/load/embed, truy hồi + sinh câu trả lời, API + UI). Chạy được demo đầu-cuối thật trên profile `mini`. Còn lại: M8 (eval), build `core`/`full` đầy đủ (xem PLAN.md Mục 8).
 
 ## Yêu cầu
 
@@ -43,6 +43,24 @@ hgr chunk                           # → data/processed/chunks.jsonl (đầu v�
 - Báo cáo trong `data/reports/`: `missing_seeds.txt` (tiêu đề seed không tồn tại, phải rỗng), `rejected_p31.tsv` (bài bị bộ lọc loại, dùng để chỉnh `allowed_p31`).
 - Seed, quota tier A, gợi ý prompt theo giai đoạn: `configs/periods.yaml`; bộ lọc bài mở rộng: `ingest` trong `configs/settings.yaml`.
 
+## Chạy demo (M4–M7)
+
+```powershell
+hgr extract --structured            # Tier S: triplet từ backbone + Wikidata + infobox (không cần LLM)
+hgr extract                         # Tier A/B: 2-pass LLM → data/extracted/extractions.jsonl
+hgr resolve                         # Hợp nhất thực thể → data/resolved/{entities,relations,mentions}.jsonl
+hgr load                            # Nạp Era/Period/backbone/Article/Chunk/Entity/Relation vào Neo4j
+hgr embed                           # Embed Chunk + Entity bằng bge-m3
+
+hgr ask "Trần Hưng Đạo là ai?"      # hỏi nhanh từ terminal, có trích dẫn [n]
+
+powershell -File scripts\run_demo.ps1   # API (:8000) + UI (:8501)
+```
+
+- API: `POST /chat` (SSE: `plan` → nhiều `token` → `done{answer, citations, subgraph, timeline}`), `POST /retrieve` (debug, không stream), `GET /periods`, `GET /periods/{id}`, `GET /entity/{id}`, `GET /health`, `GET /stats`.
+- UI (`ui/app.py`) gọi API thật qua SSE: cột chat trái; tab phải Đồ thị / Timeline / Nguồn / Khám phá giai đoạn / Debug; sidebar có `/health`, lọc giai đoạn, bật/tắt GraphRAG ↔ vector, câu hỏi mẫu.
+- `configs/settings.yaml` → `llm.chat_model` mặc định `qwen3:4b-instruct` (ước lượng ban đầu ghi nhầm tag `-2507`, tag đó không tồn tại trên registry Ollama — đã sửa). Máy chưa pull được thì đổi tạm sang `qwen2.5:3b-instruct` (model dự phòng theo PLAN.md, đã test kỹ trong quá trình phát triển).
+
 ## Cấu trúc thư mục
 
 ```
@@ -58,5 +76,7 @@ tests/      pytest (test đánh dấu `todo` được tự động skip)
 ## Lệnh CLI
 
 ```
-hgr doctor | periods | ingest | parse | chunk | extract | resolve | load | embed | build | stats | ask | eval
+hgr doctor | periods | ingest | parse | chunk | extract | resolve | load | embed | build | stats | ask
 ```
+
+`hgr eval` (M8, so sánh GraphRAG với baseline vector) chưa triển khai.

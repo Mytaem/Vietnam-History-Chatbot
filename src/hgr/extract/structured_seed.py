@@ -325,6 +325,10 @@ def from_wikidata(
                 "tail": tail,
                 "start_year": start_year,
                 "end_year": end_year,
+                # start_year/end_year ở trên là năm của BÀI VIẾT CHỦ THỂ (article_title), không phải của
+                # thực thể còn lại (vd P710: head=bên tham chiến, tail=article_title=sự kiện -> năm thuộc
+                # tail). year_target cho biết năm này thuộc head hay tail, để resolver không gán nhầm.
+                "year_target": "tail" if head_is_target else "head",
                 "confidence": 0.95,
                 "evidence": f"wikidata:{prop_id}",
                 "source": "wikidata",
@@ -433,6 +437,7 @@ def from_infobox(
                 "tail": tail,
                 "start_year": start_year,
                 "end_year": end_year,
+                "year_target": "head" if head == article_title else "tail",
                 "confidence": 0.95,
                 "evidence": f"infobox:{raw_field_name}",
                 "source": "infobox",

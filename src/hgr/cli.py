@@ -492,13 +492,78 @@ def build(
 @app.command()
 def stats(by_period: bool = typer.Option(False, "--by-period")):
     """Thống kê bài/chunk/entity/relation, cảnh báo giai đoạn thiếu dữ liệu. (M5)"""
-    _todo("stats", "M5")
+    from hgr.config import get_settings
+    from hgr.graph.store import Neo4jStore
+
+    settings = get_settings()
+    store = Neo4jStore(settings.neo4j.uri, settings.neo4j.user, settings.neo4j.password, settings.neo4j.database)
+    try:
+        if not store.ping():
+            _fail(f"Không kết nối được Neo4j ({settings.neo4j.uri}); hãy chạy 'docker compose up -d'.")
+            raise typer.Exit(1)
+        by_label = store.run(
+            "MATCH (n) UNWIND labels(n) AS label RETURN label, count(*) AS count ORDER BY count DESC"
+        )
+        typer.echo("Theo loại node:")
+        for row in by_label:
+            typer.echo(f"  {row['label']:<14} {row['count']}")
+
+        if by_period:
+            rows = store.run(
+                "MATCH (p:Period) OPTIONAL MATCH (e:Entity)-[:IN_PERIOD]->(p) "
+                "RETURN p.id AS id, count(DISTINCT e) AS entities ORDER BY p.id"
+            )
+            total = sum(r["entities"] for r in rows) or 1
+            typer.echo("\nTheo giai đoạn:")
+            empty = []
+            for row in rows:
+                pct = row["entities"] / total
+                typer.echo(f"  {row['id']:<14} {row['entities']:5} entity ({pct:.1%})")
+                if pct < 0.03:
+                    empty.append(row["id"])
+            if empty:
+                typer.secho(
+                    f"[WARN] {len(empty)}/{len(rows)} giai đoạn dưới 3% tổng entity: {', '.join(empty)}",
+                    fg=typer.colors.YELLOW,
+                )
+            else:
+                _ok("Không giai đoạn nào dưới 3% tổng entity")
+    finally:
+        store.close()
 
 
 @app.command()
 def ask(question: str, mode: str = typer.Option("graphrag", help="graphrag | vector")):
     """Hỏi một câu từ terminal. (M6)"""
-    _todo("ask", "M6")
+    from hgr.config import get_settings
+    from hgr.generate.answerer import answer as generate_answer
+    from hgr.generate.context_builder import build_context
+    from hgr.graph.store import Neo4jStore
+    from hgr.retrieve.pipeline import retrieve
+
+    settings = get_settings()
+    store = Neo4jStore(settings.neo4j.uri, settings.neo4j.user, settings.neo4j.password, settings.neo4j.database)
+    client = _get_ollama_client()
+    try:
+        if not store.ping():
+            _fail(f"Không kết nối được Neo4j ({settings.neo4j.uri}); hãy chạy 'docker compose up -d'.")
+            raise typer.Exit(1)
+        result = retrieve(question, mode=mode, store=store, client=client)
+        if result.out_of_scope:
+            from hgr.generate.answerer import OUT_OF_SCOPE_MSG
+
+            typer.echo(OUT_OF_SCOPE_MSG)
+            return
+        context, citations = build_context(result)
+        for token in generate_answer(question, context, client):
+            typer.echo(token, nl=False)
+        typer.echo()
+        if citations:
+            typer.echo("\nNguồn:")
+            for c in citations:
+                typer.echo(f"  [{c['n']}] {c['title']} › {c['section']} — {c['url']}")
+    finally:
+        store.close()
 
 
 @app.command("eval")

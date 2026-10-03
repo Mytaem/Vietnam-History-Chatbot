@@ -145,15 +145,10 @@ class EntityResolver:
                     self.add_aliases(f"local:{_slug(place)}", [place], ent_type="Place")
                     count += 1
 
-        # 5. nien_hieu.yaml (Work/Polity)
-        nh_p = b_dir / "nien_hieu.yaml"
-        if nh_p.exists():
-            nh_data = yaml.safe_load(nh_p.read_text(encoding="utf-8")) or {}
-            for nh in nh_data.get("nien_hieu", []):
-                name = nh.get("name")
-                if name:
-                    self.add_aliases(f"local:{_slug(name)}", [name], ent_type="Work")
-                    count += 1
+        # nien_hieu.yaml CHỦ Ý không đăng ký ở đây: niên hiệu (Gia Long, Minh Mạng, Quang Trung...) chính là
+        # tên gọi phổ biến nhất của vị vua đó trong văn bản thật, không phải một Work riêng. Gán type="Work"
+        # cho tên niên hiệu sẽ xung đột và làm hỏng entity Person của hầu hết vua Nguyễn/Tây Sơn (resolver
+        # coi type xung đột là 2 thực thể khác nhau). File này chỉ dùng để quy đổi năm trong process/normalize.py.
 
         return count
 
@@ -469,10 +464,16 @@ def run(
         entity = entity or {}
         known_article = article_by_name.get(name.casefold(), {})
         qid = entity.get("qid") or known_article.get("qid")
+        # Backbone (trieu_dai/quoc_hieu/kinh_do/dia_danh.yaml) đã biết type chắc chắn cho tên này: luôn ưu
+        # tiên hơn type đoán từ domain/range của Tier S hoặc type do LLM gán lệch. Thiếu bước này, "Nhà Trần"
+        # (Polity, từ backbone) và "Nhà Trần" (Person, đoán sai từ domain[0] của PARTICIPATED_IN/SUCCEEDED đa
+        # domain) bị resolver coi là 2 thực thể khác nhau (type xung đột) và tạo 2 id riêng cho cùng một tên.
+        known_type = resolver.entity_type_by_id.get(resolver.alias_to_id.get(_clean(name).casefold()))
+        ent_type = known_type or entity.get("type")
         ent_payload = {
             "name": name,
             "qid": qid,
-            "type": entity.get("type"),
+            "type": ent_type,
             "start_year": entity.get("start_year"),
             "end_year": entity.get("end_year"),
             "aliases": entity.get("aliases", []),
@@ -483,7 +484,7 @@ def run(
             "qid": qid,
             "name": name,
             "aliases": [],
-            "type": entity.get("type", "Unknown"),
+            "type": ent_type or "Unknown",
             "description": entity.get("description", ""),
             "period_ids": [],
             "start_year": entity.get("start_year"),
@@ -492,8 +493,8 @@ def run(
         for alias in [name, *entity.get("aliases", [])]:
             if alias and alias not in row["aliases"]:
                 row["aliases"].append(alias)
-        if row["type"] == "Unknown" and entity.get("type"):
-            row["type"] = entity["type"]
+        if row["type"] == "Unknown" and ent_type:
+            row["type"] = ent_type
         for period_id in period_ids or known_article.get("period_ids", []):
             if period_id and period_id not in row["period_ids"]:
                 row["period_ids"].append(period_id)
@@ -508,6 +509,52 @@ def run(
             if line.strip():
                 chunk = json.loads(line)
                 chunks_by_id[chunk["id"]] = chunk
+
+    # Tier S (backbone/Wikidata/infobox, confidence 0.95+) PHẢI được nạp trước Tier A/B (LLM, confidence thấp
+    # hơn và có thể hallucinate). register_entity() chỉ điền start_year/end_year/type khi field còn trống
+    # (first-wins), nên nếu LLM chạy trước và đoán sai (vd gán "Trận Bạch Đằng (1288)" thành năm 1945), giá
+    # trị đúng 1288 từ Wikidata chạy sau sẽ không bao giờ ghi đè được nữa.
+    # domain/range thật của từng quan hệ (vd CHILD_OF: Person→Person, OCCURRED_AT: Event→Place), để không
+    # gán cứng mọi head/tail của Tier S thành "Polity" — sẽ mistype hầu hết Person (CHILD_OF, SPOUSE_OF,
+    # RULED, PARTICIPATED_IN...) mỗi khi họ chưa được LLM trích xuất từ trước.
+    from hgr.extract.validator import load_ontology
+
+    relation_domain_range = load_ontology()["relations"]
+
+    structured = extracted_dir / "structured.jsonl"
+    if structured.exists():
+        for line in structured.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            trip = json.loads(line)
+            head = str(trip.get("head") or "")
+            tail = str(trip.get("tail") or "")
+            if not head or not tail:
+                continue
+            spec = relation_domain_range.get(trip.get("relation"), {})
+            head_type = (spec.get("domain") or ["Unknown"])[0]
+            tail_type = (spec.get("range") or ["Unknown"])[0]
+            # start_year/end_year của triplet là năm của BÀI VIẾT CHỦ THỂ, chỉ thuộc về head hoặc tail
+            # (đánh dấu ở year_target bởi structured_seed.py), không phải cả hai — nếu gán cho bên kia sẽ
+            # thành sai năm sinh/mất của vợ/cha/người kế nhiệm... (dùng nhầm năm của chủ thể).
+            years = {"start_year": trip.get("start_year"), "end_year": trip.get("end_year")}
+            head_years = years if trip.get("year_target") == "head" else {}
+            tail_years = years if trip.get("year_target") == "tail" else {}
+            head_id = register_entity(head, {"type": head_type, **head_years})
+            tail_id = register_entity(tail, {"type": tail_type, **tail_years})
+            relation_rows.append({
+                "id": f"rel:{head_id}:{trip.get('relation', 'RELATED_TO')}:{tail_id}",
+                "head_id": head_id,
+                "head": head,
+                "relation": trip.get("relation", "RELATED_TO"),
+                "tail_id": tail_id,
+                "tail": tail,
+                "start_year": trip.get("start_year"),
+                "end_year": trip.get("end_year"),
+                "confidence": trip.get("confidence", 1.0),
+                "evidence": trip.get("evidence", ""),
+                "source": "curated",
+            })
 
     source = extracted_dir / "extractions.jsonl"
     if source.exists():
@@ -567,36 +614,6 @@ def run(
                     "evidence": trip.get("evidence", ""),
                     "source": "extraction",
                 })
-
-    structured = extracted_dir / "structured.jsonl"
-    if structured.exists():
-        for line in structured.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            trip = json.loads(line)
-            head = str(trip.get("head") or "")
-            tail = str(trip.get("tail") or "")
-            if not head or not tail:
-                continue
-            if trip.get("relation") == "CAPITAL_OF":
-                head_type, tail_type = "Place", "Polity"
-            else:
-                head_type, tail_type = "Polity", "Polity"
-            head_id = register_entity(head, {"type": head_type, "start_year": trip.get("start_year"), "end_year": trip.get("end_year")})
-            tail_id = register_entity(tail, {"type": tail_type, "start_year": trip.get("start_year"), "end_year": trip.get("end_year")})
-            relation_rows.append({
-                "id": f"rel:{head_id}:{trip.get('relation', 'RELATED_TO')}:{tail_id}",
-                "head_id": head_id,
-                "head": head,
-                "relation": trip.get("relation", "RELATED_TO"),
-                "tail_id": tail_id,
-                "tail": tail,
-                "start_year": trip.get("start_year"),
-                "end_year": trip.get("end_year"),
-                "confidence": trip.get("confidence", 1.0),
-                "evidence": trip.get("evidence", ""),
-                "source": "curated",
-            })
 
     out_entities = resolved_dir / "entities.jsonl"
     with out_entities.open("w", encoding="utf-8") as f:
