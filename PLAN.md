@@ -535,7 +535,7 @@ Bài chỉ được **giữ lại** khi thỏa cả ba điều kiện:
 Mỗi bài được gán `period_id`. Nếu một bài giao với nhiều giai đoạn thì chọn giai đoạn có phần giao lớn nhất, còn các giai đoạn khác ghi vào `period_ids[]`. Bài cũng được gán `tier` theo quota. Thông tin Wikidata lấy qua `wbgetentities`, mỗi lô 50.
 
 **Bước 4b: `hgr extract`.**
-- Tier A xử lý mọi chunk; Tier B chỉ xử lý `max_chunks_b` chunk đầu.
+- Tier A xử lý mọi chunk; Tier B chỉ xử lý `max_chunks_b` chunk đầu (lọc ở bước extract; mọi chunk vẫn được embed).
 - **Pass 1 (Entity):** đưa vào prompt các link có trong chunk và `role_vocab`/`polities` của giai đoạn làm gợi ý.
 - **Pass 2 (Relation):** chỉ được dùng thực thể lấy ra từ Pass 1.
 - Dùng few-shot riêng cho từng thời kỳ (5 bộ).

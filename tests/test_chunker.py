@@ -3,10 +3,10 @@ from hgr.process.chunker import chunk_article, is_post_cutoff, split_sentences
 from hgr.process.parser import LEAD
 
 
-def make_article(sections, period_id="tran"):
+def make_article(sections, period_id="tran", tier="A"):
     return {
         "page_id": 42, "title": "Trần Hưng Đạo", "label": "Trần Hưng Đạo", "qid": "Q1",
-        "period_id": period_id, "period_ids": [period_id], "tier": "A",
+        "period_id": period_id, "period_ids": [period_id], "tier": tier,
         "sections": [{"path": p, "text": t} for p, t in sections],
         "links": [{"surface": "Nguyên Mông", "target": "Đế quốc Mông Cổ", "section": "Sự nghiệp", "offset": 0}],
     }
@@ -52,3 +52,38 @@ def test_cutoff_1945_drops_body_but_keeps_lead():
     assert paths == [LEAD, "Trước đó"]
     assert is_post_cutoff({"min_year": 1946}) and not is_post_cutoff({"min_year": 1945})
     assert not is_post_cutoff({"min_year": None})
+
+
+def _ten_sections():
+    return [(f"Mục {i}", f"Đoạn văn lịch sử số {i} với đủ câu để tạo chunk riêng biệt. Trần Hưng Đạo sinh năm 1228 và mất năm 1300.") for i in range(10)]
+
+
+def test_tier_b_chunks_are_all_kept_for_embedding():
+    # PLAN 3.1: mọi chunk đều được embed; giới hạn max_chunks_b chỉ áp dụng ở bước extract.
+    chunks = chunk_article(make_article(_ten_sections(), tier="B"), min_tokens=5)
+    assert len(chunks) == 10
+    assert [c["chunk_index"] for c in chunks] == list(range(10))
+    assert all(c["tier"] == "B" for c in chunks)
+
+
+def test_extractor_limits_tier_b_to_first_chunks(tmp_path):
+    import json
+    from unittest.mock import MagicMock
+
+    from hgr.extract.extractor import run
+
+    art_a = make_article(_ten_sections(), tier="A")
+    art_a["page_id"] = 101
+    art_b = make_article(_ten_sections(), tier="B")
+    art_b["page_id"] = 102
+    chunks = chunk_article(art_a, min_tokens=5) + chunk_article(art_b, min_tokens=5)
+    chunks_file = tmp_path / "chunks.jsonl"
+    chunks_file.write_text("".join(json.dumps(c, ensure_ascii=False) + "\n" for c in chunks), encoding="utf-8")
+
+    mock_client = MagicMock()
+    mock_client.chat_json.return_value = {"entities": [], "triplets": []}
+
+    stats = run(chunks_path=str(chunks_file), tier="B", output_dir=str(tmp_path / "b3"), client=mock_client)
+    assert stats["processed"] == 3  # extract.max_chunks_b mặc định = 3
+    stats = run(chunks_path=str(chunks_file), output_dir=str(tmp_path / "all"), client=mock_client, max_chunks_b=2)
+    assert stats["processed"] == 10 + 2

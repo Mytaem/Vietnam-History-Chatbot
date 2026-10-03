@@ -221,6 +221,7 @@ def chunk():
                 min_tokens=settings.chunk.min_tokens,
                 max_year=settings.scope.max_year,
                 drop_post_cutoff=settings.chunk.drop_post_cutoff,
+                max_chunks_b=settings.extract.max_chunks_b,
             )
             for c in chunks:
                 f.write(json.dumps(c, ensure_ascii=False) + "\n")
@@ -233,6 +234,33 @@ def chunk():
     _ok(f"{total} chunk (trung bình ~{avg} token) → {out.relative_to(data.parent)}")
 
 
+_in_build: bool = False
+_build_client = None
+
+
+def _create_ollama_client():
+    from hgr.config import get_settings
+    from hgr.llm.ollama_client import OllamaClient
+
+    settings = get_settings()
+    return OllamaClient(
+        settings.llm.host,
+        settings.llm.chat_model,
+        settings.llm.embed_model,
+        settings.llm.num_ctx,
+        max_retries=settings.llm.max_retries,
+    )
+
+
+def _get_ollama_client():
+    global _build_client
+    if _in_build:
+        if _build_client is None:
+            _build_client = _create_ollama_client()
+        return _build_client
+    return _create_ollama_client()
+
+
 @app.command()
 def extract(
     structured: bool = typer.Option(False, "--structured", help="Chỉ backbone + Wikidata + infobox"),
@@ -243,7 +271,11 @@ def extract(
     """Trích xuất thực thể + quan hệ bằng LLM local. (M4)"""
     from hgr.extract.extractor import run
 
-    run(era=era, period=period, tier=tier, structured=structured)
+    client = None
+    if not structured:
+        client = _get_ollama_client()
+
+    run(era=era, period=period, tier=tier, structured=structured, client=client)
 
 
 @app.command()
@@ -298,19 +330,12 @@ def embed():
     from hgr.config import get_settings
     from hgr.embed.embedder import embed_chunks, embed_entities
     from hgr.graph.store import Neo4jStore
-    from hgr.llm.ollama_client import OllamaClient
 
     settings = get_settings()
     store = Neo4jStore(
         settings.neo4j.uri, settings.neo4j.user, settings.neo4j.password, settings.neo4j.database
     )
-    client = OllamaClient(
-        settings.llm.host,
-        settings.llm.chat_model,
-        settings.llm.embed_model,
-        settings.llm.num_ctx,
-        max_retries=settings.llm.max_retries,
-    )
+    client = _get_ollama_client()
     try:
         if not store.ping():
             _fail(f"Không kết nối được Neo4j ({settings.neo4j.uri}); hãy chạy 'docker compose up -d'.")
@@ -322,10 +347,146 @@ def embed():
         store.close()
 
 
+BUILD_STEPS = ["ingest", "parse", "chunk", "extract", "resolve", "load", "embed"]
+
+
+def _print_build_summary() -> None:
+    try:
+        data = _data_dir()
+        proc_art = data / "processed" / "articles.jsonl"
+        proc_chunk = data / "processed" / "chunks.jsonl"
+        res_ent = data / "resolved" / "entities.jsonl"
+        res_rel = data / "resolved" / "relations.jsonl"
+        res_men = data / "resolved" / "mentions.jsonl"
+
+        stats_parts = []
+        for path, label in [
+            (proc_art, "bài"),
+            (proc_chunk, "chunk"),
+            (res_ent, "entity"),
+            (res_rel, "relation"),
+            (res_men, "mention"),
+        ]:
+            if path.exists():
+                cnt = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+                stats_parts.append(f"{cnt} {label}")
+        if stats_parts:
+            typer.secho(f"[THỐNG KÊ] " + ", ".join(stats_parts), fg=typer.colors.CYAN)
+    except Exception:
+        pass
+
+
 @app.command()
-def build(profile: str = typer.Option("mini", help=PROFILE_HELP)):
-    """Chạy ingest → parse → chunk → extract → resolve → load → embed → stats. (M9)"""
-    _todo("build", "M9")
+def build(
+    profile: str = typer.Option("mini", help=PROFILE_HELP),
+    era: str = typer.Option(None, help="Giới hạn theo era id (truyền xuống extract)"),
+    period: str = typer.Option(None, help="Giới hạn theo period id (truyền xuống extract)"),
+    tier: str = typer.Option(None, help="A | B (truyền xuống extract)"),
+    fresh: bool = typer.Option(False, "--fresh", help="Xóa data/raw trước khi ingest"),
+    skip_to: str = typer.Option(None, "--skip-to", help="Bắt đầu từ bước: ingest | parse | chunk | extract | resolve | load | embed"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Chỉ in kế hoạch các bước sẽ chạy, không thực thi"),
+):
+    """Chạy tuần tự toàn bộ pipeline: ingest → parse → chunk → extract → resolve → load → embed. (M9)"""
+    import time
+    import traceback
+
+    t_build_start = time.perf_counter()
+    valid_steps = BUILD_STEPS
+
+    if skip_to:
+        skip_key = skip_to.strip().lower()
+        if skip_key not in valid_steps:
+            _fail(f"Bước '--skip-to {skip_to}' không hợp lệ. Các bước hợp lệ: {', '.join(valid_steps)}")
+            raise typer.Exit(1)
+        start_idx = valid_steps.index(skip_key)
+        steps_to_run = valid_steps[start_idx:]
+    else:
+        steps_to_run = list(valid_steps)
+
+    target_era = era
+    target_period = period
+    if not target_era and profile.startswith("era:"):
+        target_era = profile.partition(":")[2]
+    if not target_period and profile.startswith("period:"):
+        target_period = profile.partition(":")[2]
+
+    step_descriptions = {
+        "ingest": f"profile={profile!r}, fresh={fresh}",
+        "parse": "wikitext -> sections, infobox, links",
+        "chunk": "chia chunk theo section/câu, cutoff 1945",
+        "extract": f"structured=False, era={target_era!r}, period={target_period!r}, tier={tier!r}",
+        "resolve": "hợp nhất thực thể (entities.jsonl, relations.jsonl, mentions.jsonl)",
+        "load": "nạp Era/Period/backbone/Article/Chunk/Entity/Relation/Mentions vào Neo4j",
+        "embed": "tạo embeddings cho Chunk và Entity bằng bge-m3",
+    }
+
+    step_titles = {
+        "ingest": "Ingest (thu thập bài Wikipedia + Wikidata)",
+        "parse": "Parse (wikitext -> sections, infobox, links)",
+        "chunk": "Chunk (chia đoạn theo section/câu, cutoff 1945)",
+        "extract": "Extract (trích xuất Tier S + LLM 2-pass)",
+        "resolve": "Resolve (hợp nhất thực thể)",
+        "load": "Load (nạp đồ thị vào Neo4j)",
+        "embed": "Embed (tạo vector index bge-m3)",
+    }
+
+    if dry_run:
+        typer.secho("\n[DRY-RUN] KẾ HOẠCH THỰC THI PIPELINE BUILD:", fg=typer.colors.CYAN, bold=True)
+        if skip_to:
+            skipped = valid_steps[:valid_steps.index(skip_to.strip().lower())]
+            typer.secho(f"  (Bỏ qua các bước trước: {', '.join(skipped)})", fg=typer.colors.YELLOW)
+        for s in steps_to_run:
+            step_idx = valid_steps.index(s) + 1
+            typer.echo(f"  [{step_idx}/7] {s.upper():<8} -> {step_titles[s]}")
+            typer.echo(f"           Tham số: {step_descriptions[s]}")
+        typer.secho("[DRY-RUN] Kết thúc kiểm tra cấu hình (không có bước nào được thực thi).\n", fg=typer.colors.CYAN)
+        return
+
+    typer.secho("\n" + "=" * 70, fg=typer.colors.BLUE, bold=True)
+    typer.secho(f"BẮT ĐẦU PIPELINE BUILD (Profile: {profile})", fg=typer.colors.BLUE, bold=True)
+    if skip_to:
+        typer.secho(f"Bắt đầu từ bước: {skip_to} (bỏ qua các bước trước)", fg=typer.colors.YELLOW)
+    typer.secho("=" * 70 + "\n", fg=typer.colors.BLUE, bold=True)
+
+    global _in_build, _build_client
+    _in_build = True
+    _build_client = None
+
+    try:
+        step_callables = {
+            "ingest": lambda: ingest(profile=profile, fresh=fresh),
+            "parse": lambda: parse(),
+            "chunk": lambda: chunk(),
+            "extract": lambda: extract(structured=False, era=target_era, period=target_period, tier=tier),
+            "resolve": lambda: resolve(),
+            "load": lambda: load(),
+            "embed": lambda: embed(),
+        }
+
+        for step_name in steps_to_run:
+            step_idx = valid_steps.index(step_name) + 1
+            typer.secho(f"[{step_idx}/7] Bắt đầu {step_titles[step_name]}...", fg=typer.colors.MAGENTA, bold=True)
+            t_step_start = time.perf_counter()
+            try:
+                step_callables[step_name]()
+            except typer.Exit:
+                raise
+            except Exception as exc:
+                _fail(f"Build thất bại tại bước [{step_name}]: {exc}")
+                traceback.print_exc()
+                raise typer.Exit(1)
+            t_step_elapsed = time.perf_counter() - t_step_start
+            _ok(f"Hoàn thành {step_name} trong {t_step_elapsed:.2f}s\n")
+
+        t_total = time.perf_counter() - t_build_start
+        typer.secho("=" * 70, fg=typer.colors.GREEN, bold=True)
+        _ok(f"TOÀN BỘ PIPELINE BUILD ĐÃ HOÀN TẤT TRONG {t_total:.2f}s")
+        typer.secho("=" * 70, fg=typer.colors.GREEN, bold=True)
+
+        _print_build_summary()
+    finally:
+        _in_build = False
+        _build_client = None
 
 
 @app.command()
