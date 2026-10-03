@@ -401,3 +401,24 @@ def test_all_generated_triplets_pass_validator():
         # Kiểm tra không vi phạm về kiểu thực thể hoặc quan hệ ontology
         bad_reasons = [r for r in res["reasons"] if r in ("relation_not_in_ontology", "head_type_invalid", "tail_type_invalid")]
         assert not bad_reasons, f"Triplet {trip} vi phạm kiểu hoặc quan hệ: {bad_reasons}"
+
+
+def test_infobox_skips_field_label_placeholders_and_strips_parentheses():
+    """Ô giá trị infobox đôi khi là nhãn trường ("Sáng lập triều đại") hoặc tên triều đại trong ngoặc."""
+    article = {
+        "title": "An Dương Vương",
+        "page_id": 7,
+        "start_year": 300,
+        "end_year": 207,
+        "infobox": {
+            "template": "thông tin nhân vật hoàng gia",
+            "fields": {
+                "tiền nhiệm 1": {"text": "Sáng lập triều đại"},
+                "kế nhiệm 1": {"text": "(Nhà Triệu)"},
+            },
+        },
+    }
+    tails = {t["tail"] if t["head"] == "An Dương Vương" else t["head"] for t in from_infobox(article)}
+    assert "Sáng lập triều đại" not in tails
+    assert "Nhà Triệu" in tails
+    assert "(Nhà Triệu)" not in tails

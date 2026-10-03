@@ -15,7 +15,7 @@ SUGGESTIONS = [
     ("⚔️ Các cuộc kháng chiến", "Chiến thắng Bạch Đằng năm 1288 diễn ra thế nào?"),
     ("👑 Các triều đại", "Tóm tắt nhà Trần."),
     ("👤 Nhân vật lịch sử", "Trần Hưng Đạo là ai?"),
-    ("🇻🇳 Cách mạng tháng Tám 1945", "Cách mạng tháng Tám 1945 diễn ra thế nào?"),
+    ("📜 Cách mạng tháng Tám 1945", "Cách mạng tháng Tám 1945 diễn ra thế nào?"),
 ]
 
 RECENT_EXAMPLES = [

@@ -1,6 +1,8 @@
 """Việt Sử AI — điểm vào của ứng dụng Streamlit (chạy: streamlit run ui/app.py)."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 st.set_page_config(page_title="Việt Sử AI — Chatbot Lịch sử Việt Nam", page_icon="🇻🇳", layout="wide")
@@ -12,7 +14,8 @@ from views import map as map_page  # noqa: E402
 inject_css()
 chat.init_state()
 
-st.sidebar.markdown("## 🇻🇳 Việt Sử AI")
+LOGO = str(Path(__file__).parent / "assets" / "logo.svg")
+st.logo(LOGO, icon_image=LOGO, size="large")
 
 pages = {
     "home": st.Page(lambda: home.render(st.session_state["_pages"]), title="Trang chủ", icon="🏠", default=True),

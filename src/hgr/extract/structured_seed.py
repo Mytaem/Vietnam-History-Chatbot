@@ -70,6 +70,16 @@ def _normalize_infobox_field_key(key: str) -> str:
 #     False: head = article_title, tail = target_label
 #     True:  head = target_label, tail = article_title
 # - description: Ý nghĩa ngữ nghĩa của thuộc tính Wikidata
+# Nhãn trường của infobox đôi khi nằm trong ô giá trị (vd "Sáng lập triều đại"), không phải thực thể.
+INFOBOX_PLACEHOLDERS = {
+    "sáng lập triều đại",
+    "triều đại sụp đổ",
+    "triều đại thành lập",
+    "thay đổi tước hiệu",
+    "không rõ",
+    "chưa rõ",
+}
+
 WIKIDATA_REL_MAP: dict[str, dict[str, Any]] = {
     # Gia đình (Person -> Person)
     "P22": {"rel": "CHILD_OF", "head_is_target": False, "description": "cha (article CHILD_OF target)"},
@@ -421,7 +431,8 @@ def from_infobox(
         obj_type = mapping.get("object", "value")
 
         for val in values:
-            if not val or val == article_title:
+            val = val.strip().strip("()").strip()
+            if not val or val == article_title or val.casefold() in INFOBOX_PLACEHOLDERS:
                 continue
 
             if subj_type == "value" and obj_type == "page":

@@ -11,7 +11,7 @@ TOPICS = [
     ("⚔️", "Các cuộc kháng chiến", "Chống ngoại xâm qua các thời đại", "pages/events"),
     ("🏺", "Văn hóa Việt Nam", "Văn hóa Đông Sơn, Sa Huỳnh, Óc Eo", "chat"),
     ("🕰️", "Dòng thời gian", "Xem toàn bộ tiến trình lịch sử", "pages/timeline"),
-    ("🇻🇳", "Sự kiện năm 1945", "Cách mạng tháng Tám và Tuyên ngôn độc lập", "chat"),
+    ("📜", "Sự kiện năm 1945", "Cách mạng tháng Tám và Tuyên ngôn độc lập", "chat"),
 ]
 
 
@@ -25,7 +25,7 @@ def render(pages: dict) -> None:
             <span class='vs-chip' style='background:rgba(247,241,227,.15);color:#F7F1E3;border-color:rgba(247,241,227,.3)'>🏺 Tiền sử</span>
             <span class='vs-chip' style='background:rgba(247,241,227,.15);color:#F7F1E3;border-color:rgba(247,241,227,.3)'>⚔️ Chống ngoại xâm</span>
             <span class='vs-chip' style='background:rgba(247,241,227,.15);color:#F7F1E3;border-color:rgba(247,241,227,.3)'>👑 Các triều đại</span>
-            <span class='vs-chip' style='background:rgba(247,241,227,.15);color:#F7F1E3;border-color:rgba(247,241,227,.3)'>🇻🇳 1945</span>
+            <span class='vs-chip' style='background:rgba(247,241,227,.15);color:#F7F1E3;border-color:rgba(247,241,227,.3)'>📜 1945</span>
           </div>
         </div>
         """,
