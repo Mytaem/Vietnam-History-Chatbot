@@ -4,16 +4,25 @@ from __future__ import annotations
 from hgr.retrieve.fusion import rrf
 
 
+def _clean_mention(m: str) -> str:
+    for ch in ['?', '!', ':', '"', "'", '/', '\\', '(', ')', '[', ']', '{', '}', '~', '^', '*', '+', '-']:
+        m = m.replace(ch, " ")
+    return " ".join(m.split())
+
+
 def _fulltext(store, mention: str, limit: int) -> list[dict]:
-    query = mention.replace('"', " ").strip()
+    query = _clean_mention(mention)
     if not query:
         return []
-    rows = store.run(
-        "CALL db.index.fulltext.queryNodes('entity_names', $q) YIELD node, score "
-        "RETURN node.id AS id, score ORDER BY score DESC LIMIT $limit",
-        q=f'"{query}"~', limit=limit,
-    )
-    return [{"id": r["id"]} for r in rows]
+    try:
+        rows = store.run(
+            "CALL db.index.fulltext.queryNodes('entity_names', $q) YIELD node, score "
+            "RETURN node.id AS id, score ORDER BY score DESC LIMIT $limit",
+            q=query, limit=limit,
+        )
+        return [{"id": r["id"]} for r in rows]
+    except Exception:
+        return []
 
 
 def _vector(store, client, mention: str, limit: int) -> list[dict]:
@@ -49,11 +58,22 @@ def link_mention(mention: str, store, client, prefer_periods: list[str] | None =
     return [row["id"] for row in fused[:k]]
 
 
+STOP_MENTIONS = {
+    "ai", "gì", "nào", "ở đâu", "khi nào", "năm nào", "bao giờ", "bao nhiêu",
+    "thế nào", "làm sao", "mấy", "sao", "đâu", "năm", "thời gian nào", "ai là",
+    "vua nào", "thời nào", "địa danh nào"
+}
+
+
 def link_all(mentions: list[str], store, client, prefer_periods: list[str] | None = None, k: int = 2) -> list[str]:
     """Gộp id Entity tìm được cho mọi mention, giữ thứ tự xuất hiện, không trùng."""
     seen: list[str] = []
     for mention in mentions:
-        for entity_id in link_mention(mention, store, client, prefer_periods, k):
+        m = (mention or "").strip()
+        if not m or len(m) <= 1 or m.lower() in STOP_MENTIONS:
+            continue
+        for entity_id in link_mention(m, store, client, prefer_periods, k):
             if entity_id not in seen:
                 seen.append(entity_id)
     return seen
+

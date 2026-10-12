@@ -17,6 +17,7 @@ rapidfuzz>=3.9
 ollama>=0.3
 neo4j>=5.20
 networkx>=3.3
+scipy>=1.12
 
 # API / UI
 fastapi>=0.111

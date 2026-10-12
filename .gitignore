@@ -12,3 +12,8 @@ data/**
 
 eval/report.md
 .scratch/
+eval_test
+results
+*.bak
+uv.lock
+

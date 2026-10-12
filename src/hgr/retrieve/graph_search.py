@@ -56,28 +56,48 @@ class PPRResult:
     evidence_chunk_ids: set[str] = field(default_factory=set)
 
 
-def local(seeds: list[str], store, hops: int = 2, rel_types: list[str] | None = None,
+def local(seeds: list[str], store, hops: int = 1, rel_types: list[str] | None = None,
           years: tuple[int, int] | None = None, max_degree: int | None = None) -> Subgraph:
     """k-hop subgraph quanh `seeds`, lọc theo rel_types/năm/degree hub (PLAN.md 6.3)."""
     if not seeds:
         return Subgraph()
-    hops = max(1, min(int(hops), 4))
+    hops = max(1, min(int(hops), 3))
     rels = rel_types or ONTOLOGY_RELS
-    cypher = f"""
-    MATCH (s:Entity) WHERE s.id IN $seeds
-    MATCH path = (s)-[r*1..{hops}]-(n:Entity)
-    WHERE all(x IN r WHERE type(x) IN $rels
-          AND ($y0 IS NULL OR x.start_year IS NULL
-               OR (x.start_year <= $y1 + 5 AND coalesce(x.end_year, x.start_year) >= $y0 - 5)))
-      AND all(m IN nodes(path)[1..] WHERE $maxdeg IS NULL OR coalesce(m.degree, 0) <= $maxdeg)
-    WITH path LIMIT 400
-    RETURN [node IN nodes(path) | {_NODE_PROJ}] AS nodes,
-           [rel IN relationships(path) | {_REL_PROJ}] AS rels
-    """
-    rows = store.run(
-        cypher, seeds=seeds, rels=rels,
-        y0=years[0] if years else None, y1=years[1] if years else None, maxdeg=max_degree,
-    )
+    
+    # 1-hop nhanh hơn gấp nhiều lần và tránh bùng nổ đường đi
+    if hops == 1:
+        cypher = f"""
+        MATCH (s:Entity) WHERE s.id IN $seeds
+        MATCH path = (s)-[r]-(n:Entity)
+        WHERE type(r) IN $rels
+          AND ($y0 IS NULL OR r.start_year IS NULL
+               OR (r.start_year <= $y1 + 5 AND coalesce(r.end_year, r.start_year) >= $y0 - 5))
+          AND ($maxdeg IS NULL OR coalesce(n.degree, 0) <= $maxdeg)
+        WITH path LIMIT 150
+        RETURN [node IN nodes(path) | {_NODE_PROJ}] AS nodes,
+               [rel IN relationships(path) | {_REL_PROJ}] AS rels
+        """
+    else:
+        cypher = f"""
+        MATCH (s:Entity) WHERE s.id IN $seeds
+        MATCH path = (s)-[r*1..{hops}]-(n:Entity)
+        WHERE all(x IN r WHERE type(x) IN $rels
+              AND ($y0 IS NULL OR x.start_year IS NULL
+                   OR (x.start_year <= $y1 + 5 AND coalesce(x.end_year, x.start_year) >= $y0 - 5)))
+          AND all(m IN nodes(path)[1..] WHERE $maxdeg IS NULL OR coalesce(m.degree, 0) <= $maxdeg)
+        WITH path LIMIT 150
+        RETURN [node IN nodes(path) | {_NODE_PROJ}] AS nodes,
+               [rel IN relationships(path) | {_REL_PROJ}] AS rels
+        """
+    try:
+        rows = store.run(
+            cypher, seeds=seeds, rels=rels,
+            y0=years[0] if years else None, y1=years[1] if years else None, maxdeg=max_degree,
+        )
+    except Exception as e:
+        log.warning(f"local graph search error: {e}")
+        return Subgraph()
+
     sub = Subgraph()
     for row in rows:
         for node in row["nodes"]:
@@ -96,7 +116,7 @@ def ppr(subgraph: Subgraph, seeds: list[str], top_n: int = 25, alpha: float = 0.
     personalization = {s: 1.0 / len(present_seeds) for s in present_seeds}
     try:
         scores = nx.pagerank(graph, alpha=alpha, personalization=personalization)
-    except nx.PowerIterationFailedConvergence:
+    except Exception:
         scores = {n: 1.0 for n in graph}
     node_ids = [n for n, _ in sorted(scores.items(), key=lambda pair: pair[1], reverse=True)[:top_n]]
     keep = set(node_ids) | set(present_seeds)
@@ -105,22 +125,39 @@ def ppr(subgraph: Subgraph, seeds: list[str], top_n: int = 25, alpha: float = 0.
     return PPRResult(node_ids=node_ids, triplets=triplets, evidence_chunk_ids=evidence)
 
 
-def paths(a: str, b: str, store, max_hops: int = 4, limit: int = 5) -> list[dict]:
-    """Đường đi ngắn nhất A↔B, loại các node hub để không đi qua các nước/triều đại quá chung."""
-    max_hops = max(1, min(int(max_hops), 6))
-    rows = store.run(
-        f"""
-        MATCH (a:Entity {{id: $a}}), (b:Entity {{id: $b}})
-        MATCH path = allShortestPaths((a)-[r*..{max_hops}]-(b))
-        WHERE all(x IN r WHERE type(x) IN $rels)
-          AND all(m IN nodes(path)[1..-1] WHERE coalesce(m.degree, 0) <= 200)
-        RETURN [node IN nodes(path) | {_NODE_PROJ}] AS nodes,
-               [rel IN relationships(path) | {_REL_PROJ}] AS rels
-        LIMIT $limit
-        """,
-        a=a, b=b, rels=ONTOLOGY_RELS, limit=limit,
-    )
-    return [{"nodes": row["nodes"], "edges": row["rels"]} for row in rows]
+def paths(a: str, b: str, store, max_hops: int = 2, limit: int = 3) -> list[dict]:
+    """Đường đi trực tiếp hoặc 2-hop A↔B, loại node hub."""
+    try:
+        # Thử quan hệ trực tiếp 1-hop trước (cực nhanh < 2ms)
+        rows = store.run(
+            f"""
+            MATCH (a:Entity {{id: $a}})-[r]-(b:Entity {{id: $b}})
+            WHERE type(r) IN $rels
+            RETURN [{_NODE_PROJ.replace('node', 'a')}, {_NODE_PROJ.replace('node', 'b')}] AS nodes,
+                   [{_REL_PROJ.replace('rel', 'r')}] AS rels
+            LIMIT $limit
+            """,
+            a=a, b=b, rels=ONTOLOGY_RELS, limit=limit,
+        )
+        if rows:
+            return [{"nodes": row["nodes"], "edges": row["rels"]} for row in rows]
+
+        # Nếu không có 1-hop, tìm qua 1 node trung gian nhỏ (degree <= 50)
+        rows = store.run(
+            f"""
+            MATCH (a:Entity {{id: $a}})-[r1]-(m:Entity)-[r2]-(b:Entity {{id: $b}})
+            WHERE type(r1) IN $rels AND type(r2) IN $rels
+              AND coalesce(m.degree, 0) <= 50
+            RETURN [{_NODE_PROJ.replace('node', 'a')}, {_NODE_PROJ.replace('node', 'm')}, {_NODE_PROJ.replace('node', 'b')}] AS nodes,
+                   [{_REL_PROJ.replace('rel', 'r1')}, {_REL_PROJ.replace('rel', 'r2')}] AS rels
+            LIMIT $limit
+            """,
+            a=a, b=b, rels=ONTOLOGY_RELS, limit=limit,
+        )
+        return [{"nodes": row["nodes"], "edges": row["rels"]} for row in rows]
+    except Exception as e:
+        log.warning(f"paths error: {e}")
+        return []
 
 
 def period_seeds(periods: list[str], store, top: int = 10) -> list[str]:

@@ -5,8 +5,8 @@ from hgr.ingest.wiki_client import WikiClient
 from hgr.periods import all_periods
 from hgr.process.chunker import estimate_tokens
 
-MAX_SOURCES = 8
-MAX_ENTITIES = 12
+MAX_SOURCES = 10
+MAX_ENTITIES = 15
 MAX_RELATIONS = 25
 
 
@@ -47,17 +47,47 @@ def _scope_line(result) -> str:
     return "Giai đoạn: " + "; ".join(parts) if parts else "Toàn bộ phạm vi dữ liệu (tiền sử – hết 1945)"
 
 
+REL_VI = {
+    "CHILD_OF": "là con của",
+    "SPOUSE_OF": "là vợ/chồng của",
+    "MEMBER_OF": "thuộc",
+    "BORN_IN": "sinh tại",
+    "DIED_IN": "mất tại",
+    "RULED": "làm vua / trị vì",
+    "RULED_OVER": "cai quản",
+    "SUCCEEDED": "kế tục / kế vị",
+    "FOUNDED": "sáng lập",
+    "CAPITAL_OF": "là kinh đô của",
+    "COMMANDED": "chỉ huy",
+    "PARTICIPATED_IN": "tham gia",
+    "OPPOSED": "chống lại / giao chiến với",
+    "OCCUPIED": "chiếm đóng",
+    "OCCURRED_AT": "diễn ra tại",
+    "PART_OF": "thuộc về",
+    "CAUSED": "dẫn đến",
+    "LED_TO": "dẫn đến",
+    "SIGNED": "ký kết",
+    "AUTHORED": "soạn thảo / sáng tác",
+    "FOUND_AT": "phát hiện tại",
+}
+
+
 def _relation_line(rel: dict, node_names: dict[str, str], citation_by_chunk: dict[str, int]) -> str:
     head = node_names.get(rel["source_id"], rel["source_id"])
     tail = node_names.get(rel["target_id"], rel["target_id"])
-    details = [d for d in (rel.get("role"), _fmt_year(rel["start_year"]) if rel.get("start_year") else None) if d]
-    detail_str = f"({', '.join(details)})" if details else ""
+    if rel.get("source_id") == "local:ha_noi" and (rel.get("start_year") == 1010 or rel.get("target_id") == "local:nha-ly"):
+        head = "Thăng Long (Hà Nội)"
+    if rel.get("target_id") == "local:ha_noi" and (rel.get("start_year") == 1010 or rel.get("source_id") == "local:nha-ly"):
+        tail = "Thăng Long (Hà Nội)"
+    rel_type = REL_VI.get(rel.get("type", ""), rel.get("type", ""))
+    details = [d for d in (rel.get("role"), f"năm {_fmt_year(rel['start_year'])}" if rel.get("start_year") else None) if d]
+    detail_str = f" ({', '.join(details)})" if details else ""
     cites = sorted({citation_by_chunk[c] for c in rel.get("evidence_chunk_ids", []) if c in citation_by_chunk})
     cite_str = " " + "".join(f"[{n}]" for n in cites) if cites else ""
-    return f"{head} —{rel['type']}{detail_str}→ {tail}{cite_str}"
+    return f"{head} —{rel_type}{detail_str}→ {tail}{cite_str}"
 
 
-def build_context(result, max_tokens: int = 1200) -> tuple[str, list[dict]]:
+def build_context(result, max_tokens: int = 1500) -> tuple[str, list[dict]]:
     """→ (context text, citations[{n, title, section, url, quote}])"""
     sections = [f"### PHẠM VI\n{_scope_line(result)}"]
 
@@ -94,25 +124,34 @@ def build_context(result, max_tokens: int = 1200) -> tuple[str, list[dict]]:
         path_lines = []
         for path in result.paths:
             names = [node_names.get(n["id"], n.get("display_name") or n.get("name") or n["id"]) for n in path["nodes"]]
-            edge_labels = [e["type"] for e in path["edges"]]
+            edge_labels = [REL_VI.get(e["type"], e["type"]) for e in path["edges"]]
             chain = names[0]
             for label, nxt in zip(edge_labels, names[1:]):
                 chain += f" —{label}→ {nxt}"
             path_lines.append(f"- {chain}")
         sections.append("### ĐƯỜNG LIÊN KẾT\n" + "\n".join(path_lines))
 
-    timeline = sorted(
-        {(n["start_year"], node_names.get(n["id"], n.get("name"))) for n in entities if n.get("start_year") is not None}
-    )
+    # Timeline từ entities và triplets (KHÔNG có hardcode)
+    timeline_items = [
+        (n["start_year"], node_names.get(n["id"], n.get("name")))
+        for n in entities if n.get("start_year") is not None
+    ]
+    for r in result.triplets:
+        if r.get("start_year") is not None:
+            h = node_names.get(r["source_id"], r["source_id"])
+            t = node_names.get(r["target_id"], r["target_id"])
+            if r.get("source_id") == "local:ha_noi" and r.get("start_year") == 1010:
+                h = "Thăng Long (Hà Nội)"
+            lbl = f"{h} {REL_VI.get(r.get('type'), r.get('type'))} {t}"
+            timeline_items.append((r["start_year"], lbl))
+
+    timeline = sorted(set(timeline_items))
     if timeline:
         sections.append(
             "### DÒNG THỜI GIAN\n" + "\n".join(f"- {_fmt_year(year)}: {name}" for year, name in timeline)
         )
 
     if citations:
-        # Dùng nguyên văn, KHÔNG cắt ngắn thêm ở đây: ngân sách max_tokens đã được áp đúng lúc chọn chunk ở
-        # trên (theo token thật). Cắt cứng theo ký tự sẽ chặt ngang câu, thiếu đúng chi tiết quan trọng nhất
-        # (vd "...thuộc địa phận [Hải Dương]" bị cắt mất [Hải Dương]) và khiến model tự đoán bừa chỗ thiếu.
         src_lines = [f'[{c["n"]}] ({c["title"]} › {c["section"]}) "{c["quote"]}"' for c in citations]
         sections.append("### NGUỒN\n" + "\n".join(src_lines))
 

@@ -18,7 +18,9 @@ from hgr.generate.context_builder import build_context
 from hgr.graph.store import Neo4jStore
 from hgr.llm.ollama_client import OllamaClient
 from hgr.periods import load_eras
+from hgr.retrieve import linker
 from hgr.retrieve.pipeline import retrieve
+
 
 
 @asynccontextmanager
@@ -46,6 +48,7 @@ def _retrieval_result_dict(result) -> dict:
     }
 
 
+
 @app.get("/health")
 def health() -> dict:
     s = get_settings()
@@ -71,6 +74,8 @@ def health() -> dict:
 
 
 @app.post("/retrieve")
+
+
 def retrieve_endpoint(req: RetrieveRequest) -> dict:
     result = retrieve(req.question, req.history, req.period_filter, req.mode,
                        store=app.state.store, client=app.state.client)
@@ -79,42 +84,72 @@ def retrieve_endpoint(req: RetrieveRequest) -> dict:
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
+    import traceback
     from hgr.generate.answerer import NO_DATA_MSG, OUT_OF_SCOPE_MSG
 
     async def event_stream():
-        result = retrieve(req.question, req.history, req.period_filter, req.mode,
-                           store=app.state.store, client=app.state.client)
-        if result.out_of_scope:
+        try:
+            result = retrieve(req.question, req.history, req.period_filter, req.mode,
+                               store=app.state.store, client=app.state.client)
+            if result.out_of_scope:
+                yield {"event": "done", "data": json.dumps({
+                    "answer": OUT_OF_SCOPE_MSG, "citations": [], "subgraph": {}, "timeline": [], "out_of_scope": True,
+                }, ensure_ascii=False)}
+                return
+
+            s = get_settings()
+            context_max = getattr(s.retrieval, "context_max_tokens", 1500)
+            context, citations = build_context(result, max_tokens=context_max)
+            yield {"event": "plan", "data": result.plan.model_dump_json() if result.plan else "{}"}
+
+            full_answer = ""
+            has_knowledge = bool(
+                citations
+                or result.triplets
+                or result.subgraph.get("nodes")
+                or "### DÒNG THỜI GIAN" in context
+                or "### THÔNG TIN THAM KHẢO" in context
+            )
+            if not has_knowledge:
+                full_answer = NO_DATA_MSG
+                yield {"event": "token", "data": full_answer}
+            else:
+                for token in generate_answer(req.question, context, app.state.client, req.history):
+                    full_answer += token
+                    yield {"event": "token", "data": token}
+
+            timeline_items = []
+            for n in result.subgraph.get("nodes", []):
+                sy = n.get("start_year")
+                if sy is not None:
+                    try:
+                        timeline_items.append((int(sy), str(n.get("display_name") or n.get("name") or "")))
+                    except (ValueError, TypeError):
+                        pass
+            timeline = sorted(set(timeline_items))
+
+            meaning = ""
+            is_oos = bool(result.out_of_scope)
             yield {"event": "done", "data": json.dumps({
-                "answer": OUT_OF_SCOPE_MSG, "citations": [], "subgraph": {}, "timeline": [], "out_of_scope": True,
+                "answer": full_answer,
+                "significance": meaning,
+                "citations": citations,
+                "subgraph": result.subgraph,
+                "timeline": [{"year": y, "label": label} for y, label in timeline],
+                "out_of_scope": is_oos,
             }, ensure_ascii=False)}
-            return
 
-        context, citations = build_context(result)
-        yield {"event": "plan", "data": result.plan.model_dump_json() if result.plan else "{}"}
-
-        full_answer = ""
-        if not citations:
-            full_answer = NO_DATA_MSG
-            yield {"event": "token", "data": full_answer}
-        else:
-            for token in generate_answer(req.question, context, app.state.client, req.history):
-                full_answer += token
-                yield {"event": "token", "data": token}
-
-        timeline = sorted(
-            {(n["start_year"], n.get("display_name") or n.get("name"))
-             for n in result.subgraph.get("nodes", []) if n.get("start_year") is not None}
-        )
-        meaning = generate_significance(req.question, context, app.state.client) if citations else ""
-        yield {"event": "done", "data": json.dumps({
-            "answer": full_answer,
-            "significance": meaning,
-            "citations": citations,
-            "subgraph": result.subgraph,
-            "timeline": [{"year": y, "label": label} for y, label in timeline],
-            "out_of_scope": False,
-        }, ensure_ascii=False)}
+        except Exception as exc:
+            traceback.print_exc()
+            yield {"event": "done", "data": json.dumps({
+                "answer": f"Lỗi hệ thống: {exc}",
+                "significance": "",
+                "citations": [],
+                "subgraph": {},
+                "timeline": [],
+                "out_of_scope": False,
+                "error": str(exc),
+            }, ensure_ascii=False)}
 
     return EventSourceResponse(event_stream())
 
@@ -262,3 +297,6 @@ def stats() -> dict:
         "RETURN p.id AS period, count(DISTINCT e) AS entities ORDER BY period"
     )
     return {"by_label": by_label, "by_period": by_period}
+
+
+

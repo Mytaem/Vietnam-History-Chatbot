@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 ONTOLOGY_PATH = PROJECT_ROOT / "configs" / "ontology.yaml"
@@ -47,22 +47,105 @@ class Entity(BaseModel):
     wikilink: Optional[str] = Field(default=None, description="Tiêu đề wikilink tương ứng nếu có trong đoạn")
     qid: Optional[str] = Field(default=None, description="Mã Wikidata QID nếu có")
 
+    @field_validator("type", mode="before")
+    @classmethod
+    def _coerce_type(cls, v):
+        if isinstance(v, str):
+            v_clean = v.strip()
+            for t in _entity_types:
+                if t.lower() == v_clean.lower():
+                    return t
+            mapping = {
+                "time": "Event",
+                "date": "Event",
+                "year": "Event",
+                "period": "Event",
+                "era": "Event",
+                "location": "Place",
+                "city": "Place",
+                "country": "Polity",
+                "nation": "Polity",
+                "dynasty": "Polity",
+                "state": "Polity",
+                "human": "Person",
+                "character": "Person",
+                "figure": "Person",
+                "book": "Work",
+                "document": "Work",
+                "treaty": "Work",
+            }
+            return mapping.get(v_clean.lower(), "Event")
+        return v
+
 
 class EntityOutput(BaseModel):
     entities: list[Entity] = Field(default_factory=list)
+
+    @field_validator("entities", mode="before")
+    @classmethod
+    def _coerce_entities(cls, v):
+        if not isinstance(v, list):
+            return []
+        return v
 
 
 class Triplet(BaseModel):
     head: str = Field(description="Tên thực thể chủ thể (phải thuộc danh sách thực thể từ Pass 1)")
     relation: RelType = Field(description="Loại quan hệ thuộc ontology")
     tail: str = Field(description="Tên thực thể đối tượng (phải thuộc danh sách thực thể từ Pass 1)")
-    evidence: str = Field(description="Câu hoặc cụm từ trích NGUYÊN VĂN từ đoạn văn làm bằng chứng")
+    evidence: str = Field(default="", description="Câu hoặc cụm từ trích NGUYÊN VĂN từ đoạn văn làm bằng chứng")
     start_year: Optional[int] = Field(default=None, description="Năm bắt đầu của quan hệ nếu có (TCN là số âm)")
     end_year: Optional[int] = Field(default=None, description="Năm kết thúc của quan hệ nếu có")
     role: Optional[str] = Field(default=None, description="Vai trò tùy chọn (ví dụ: thái thú, tướng quân...)")
     side: Optional[str] = Field(default=None, description="Phe/bên tham gia tùy chọn")
     confidence: float = Field(default=0.9, ge=0.0, le=1.0, description="Độ tin cậy trích xuất")
 
+    @field_validator("relation", mode="before")
+    @classmethod
+    def _coerce_relation(cls, v):
+        if isinstance(v, str):
+            v_clean = v.strip().upper()
+            for r in _rel_types:
+                if r.upper() == v_clean:
+                    return r
+            mapping = {
+                "MARRIED_TO": "SPOUSE_OF",
+                "WIFE_OF": "SPOUSE_OF",
+                "HUSBAND_OF": "SPOUSE_OF",
+                "LIVED_WITH": "PARTICIPATED_IN",
+                "SUCCEEDED_BY": "SUCCEEDED",
+                "BORN_AT": "BORN_IN",
+                "DIED_AT": "DIED_IN",
+                "DEFEATED": "OPPOSED",
+                "FOUGHT": "OPPOSED",
+                "FOUGHT_AGAINST": "OPPOSED",
+                "JOINED": "PARTICIPATED_IN",
+                "MEMBER": "MEMBER_OF",
+                "LOCATED_IN": "PART_OF",
+                "HAPPENED_AT": "OCCURRED_AT",
+                "OCCURRED_IN": "OCCURRED_AT",
+                "CREATED": "AUTHORED",
+                "WROTE": "AUTHORED",
+            }
+            return mapping.get(v_clean, "PARTICIPATED_IN")
+        return v
+
 
 class RelationOutput(BaseModel):
     triplets: list[Triplet] = Field(default_factory=list)
+
+    @field_validator("triplets", mode="before")
+    @classmethod
+    def _coerce_triplets(cls, v):
+        if not isinstance(v, list):
+            return []
+        coerced = []
+        for item in v:
+            if isinstance(item, dict):
+                item = dict(item)
+                if not item.get("evidence"):
+                    item["evidence"] = ""
+                coerced.append(item)
+            else:
+                coerced.append(item)
+        return coerced

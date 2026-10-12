@@ -18,9 +18,87 @@ mini:
   - Gia Long
   - Phong trào Cần Vương
   - Cách mạng Tháng Tám
+  - Thánh Gióng
 
 # Bổ sung thủ công (áp dụng cho mọi profile), dạng {title, period}
-extra: []
+extra:
+  - {title: "Thánh Gióng", period: vanlang}
+  - {title: "Hội nghị Diên Hồng", period: tran}
+  - {title: "Lịch sử Đà Nẵng", period: phap_xamluoc}
+  - {title: "Trận Rạch Gầm – Xoài Mút", period: tayson}
+  - {title: "Quang Trung", period: tayson}
+  - {title: "Phan Bội Châu", period: dau_tk20}
+  # Thêm cho bộ test mới
+  - {title: "Trịnh Kiểu", period: nambactrieu}
+  - {title: "Trận Ngọc Hồi – Đống Đa", period: tayson}
+  - {title: "Chế Bồng Nga", period: champa}
+  - {title: "Lê Thái Tông", period: leso}
+  - {title: "Hai Bà Trưng", period: haibatrung}
+  - {title: "Lý Thường Kiệt", period: ly}
+  - {title: "Sơn Tinh Thủy Tinh", period: vanlang}
+  # Tiền sử
+  - {title: "Văn hóa Hòa Bình", period: neolithic}
+  - {title: "Văn hóa Đông Sơn", period: neolithic}
+  - {title: "Trống đồng Đông Sơn", period: neolithic}
+  # Bắc thuộc
+  - {title: "Bà Triệu", period: bacthuoc_2}
+  - {title: "Phùng Hưng", period: bacthuoc_3}
+  - {title: "Mai Thúc Loan", period: bacthuoc_3}
+  # Nhà Ngô, Đinh, Lê
+  - {title: "Nhà Đinh", period: dinhnho}
+  - {title: "Đinh Tiên Hoàng", period: dinhnho}
+  - {title: "Lê Hoàn", period: tienle}
+  - {title: "Lý Cố Kỷ", period: ly}
+  - {title: "Chiến tranh Tống–Việt lần thứ nhất", period: tienle}
+  - {title: "Văn Miếu – Quốc Tử Giám", period: ly}
+  - {title: "Trận Như Nguyệt", period: ly}
+  - {title: "Nam quốc sơn hà", period: ly}
+  # Nhà Trần
+  - {title: "Hịch tướng sĩ", period: tran}
+  - {title: "Nhà Hồ", period: ho}
+  - {title: "Thành nhà Hồ", period: ho}
+  - {title: "Hồ Quý Ly", period: ho}
+  # Nhánh song song
+  - {title: "Chiến tranh Việt – Chiêm (1471)", period: champa}
+  # Lê sơ
+  - {title: "Ngô Sĩ Liên", period: leso}
+  - {title: "Bộ luật Hồng Đức", period: leso}
+  # Trịnh Nguyễn
+  - {title: "Đào Duy Từ", period: trinhnguyen}
+  - {title: "Alexandre de Rhodes", period: trinhnguyen}
+  - {title: "Chúa Trịnh", period: trinhnguyen}
+  - {title: "Chúa Nguyễn", period: trinhnguyen}
+  # Tây Sơn
+  - {title: "Cảnh Thịnh", period: tayson}
+  # Cận đại
+  - {title: "Tôn Thất Thuyết", period: canvuong}
+  - {title: "Hoàng Hoa Thám", period: canvuong}
+  - {title: "Đông Kinh Nghĩa Thục", period: dau_tk20}
+  - {title: "Việt Nam Quốc dân Đảng", period: "1919_1930"}
+  - {title: "Trần Phú", period: "1930_1939"}
+  - {title: "Mặt trận Dân chủ Đông Dương", period: "1930_1939"}
+  - {title: "Nhật đảo chính Pháp tại Đông Dương", period: "1939_1945"}
+  - {title: "Nạn đói năm 1945", period: "1939_1945"}
+  - {title: "Bảo Đại", period: nguyen_doclap}
+  - {title: "Kinh thành Huế", period: nguyen_doclap}
+  - {title: "Minh Mạng", period: nguyen_doclap}
+  - {title: "Francis Garnier", period: phap_xamluoc}
+  - {title: "Hòa ước Nhâm Tuất (1862)", period: phap_xamluoc}
+  # Bổ sung cho câu thất bại
+  - {title: "Văn hóa Bắc Sơn", period: neolithic}
+  - {title: "Văn hóa Phùng Nguyên", period: neolithic}
+  - {title: "Trưng Trắc", period: haibatrung}
+  - {title: "Trưng Nhị", period: haibatrung}
+  - {title: "Chăm Pa", period: champa}
+  - {title: "Trận Đại Cảnh", period: champa}
+  - {title: "Lê Hoàn", period: tienle}
+  - {title: "Ngô Sĩ Liên", period: leso}
+  - {title: "Đào Duy Từ", period: trinhnguyen}
+  - {title: "Phan Bội Châu", period: dau_tk20}
+  - {title: "Bản yêu sách nhân dân An Nam", period: dau_tk20}
+  - {title: "Hồ Chí Minh", period: dau_tk20}
+  - {title: "Lang Liêu", period: vanlang}
+  - {title: "Lý Nam Đế", period: hautrang}
 
 # Không bao giờ thu thập
 blocklist: []

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 Intent = Literal["factoid", "multihop", "temporal", "relational", "comparison", "overview"]
 
@@ -15,6 +15,15 @@ class QueryPlan(BaseModel):
     rewritten: str
     time_range: Optional[tuple[int, int]] = None
     periods: list[str] = []
+    out_of_scope: bool = False
+    keywords: list[str] = []
+
+    @field_validator("entities", "rel_hints", "periods", "keywords", mode="before")
+    @classmethod
+    def default_none_to_list(cls, v):
+        if v is None:
+            return []
+        return v
 
 
 SYSTEM_PROMPT = """Bạn phân tích câu hỏi lịch sử Việt Nam (tiền sử đến hết 1945) để chuẩn bị truy hồi dữ liệu.
@@ -23,10 +32,20 @@ Trả về JSON đúng schema với các trường:
   temporal (hỏi theo mốc/khoảng thời gian), relational (hỏi quan hệ giữa 2 thực thể, "A và B"),
   comparison (so sánh 2+ thực thể), overview (tổng quan một giai đoạn/chủ đề rộng).
 - entities: tên riêng (người, sự kiện, địa danh, triều đại...) được nhắc trong câu, giữ nguyên tiếng Việt có dấu.
+  TUYỆT ĐỐI KHÔNG đưa từ để hỏi như 'năm nào', 'khi nào', 'ở đâu', 'ai', 'gì', 'thế nào' vào entities.
+- keywords: các từ khóa quan trọng trong câu (hành động, sự kiện, mốc thời gian, tên gọi).
 - rel_hints: tên quan hệ có thể liên quan nếu đoán được (ví dụ CHILD_OF, RULED, PARTICIPATED_IN, OPPOSED...), để trống nếu không rõ.
 - rewritten: viết lại câu hỏi đầy đủ, giải đại từ ("ông ấy", "trận đó"...) dựa theo lịch sử hội thoại, không đổi ý nghĩa.
 - time_range, periods: để trống [] / null, một bước luật riêng sẽ tính các trường này.
 Chỉ dựa vào câu hỏi và lịch sử hội thoại được cung cấp, không suy diễn thêm sự kiện ngoài câu hỏi."""
+
+
+QUESTION_STOP_WORDS = {
+    "ai", "gì", "nào", "ở đâu", "khi nào", "năm nào", "bao giờ", "bao nhiêu",
+    "thế nào", "làm sao", "mấy", "sao", "đâu", "năm", "thời gian nào", "ai là",
+    "tại sao", "vua nào", "địa danh nào", "thời nào", "vị vua", "vua", "vua gì",
+    "người nào", "nhân vật nào", "thời kỳ nào", "thời kỳ", "giai đoạn nào",
+}
 
 
 def _history_text(history: list[dict]) -> str:
@@ -46,6 +65,15 @@ def analyze(question: str, history: list[dict], client) -> QueryPlan:
         {"role": "user", "content": f"Lịch sử hội thoại:\n{_history_text(history)}\n\nCâu hỏi: {question}"},
     ]
     try:
-        return client.chat_json(messages, QueryPlan)
+        plan = client.chat_json(messages, QueryPlan)
     except Exception:
-        return QueryPlan(intent="factoid", entities=[], rel_hints=[], rewritten=question)
+        plan = QueryPlan(intent="factoid", entities=[], rel_hints=[], rewritten=question)
+
+    filtered = []
+    for ent in plan.entities:
+        e = ent.strip()
+        if e.lower() not in QUESTION_STOP_WORDS and len(e) > 1:
+            filtered.append(e)
+    plan.entities = filtered
+    return plan
+

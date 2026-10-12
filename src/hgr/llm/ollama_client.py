@@ -149,12 +149,14 @@ class OllamaClient:
         else:
             raise RuntimeError(f"{action_name} thất bại sau {total_attempts} lần")
 
-    def chat(self, messages: list[dict], stream: bool = False) -> str | Iterator[str]:
-        options = {"num_ctx": self.num_ctx, "temperature": self.temperature}
+    def chat(self, messages: list[dict], stream: bool = False, options: dict[str, Any] | None = None) -> str | Iterator[str]:
+        base_options = {"num_ctx": self.num_ctx, "temperature": self.temperature}
+        if options:
+            base_options.update(options)
         kwargs: dict[str, Any] = {
             "model": self.chat_model,
             "messages": messages,
-            "options": options,
+            "options": base_options,
         }
         if self.keep_alive is not None:
             kwargs["keep_alive"] = self.keep_alive
@@ -174,12 +176,12 @@ class OllamaClient:
         return self._execute_with_retry(_call_and_process, action_name="chat")
 
     def chat_json(self, messages: list[dict], schema: type[T]) -> T:
-        """Gọi với format=<json schema>, temperature=0; retry có backoff khi parse lỗi hoặc gặp sự cố mạng/timeout."""
+        """Gọi với format=json, temperature=0; retry có backoff khi parse lỗi hoặc gặp sự cố mạng/timeout."""
         options = {"num_ctx": self.num_ctx, "temperature": 0.0}
         kwargs: dict[str, Any] = {
             "model": self.chat_model,
             "messages": messages,
-            "format": schema.model_json_schema(),
+            "format": "json",
             "options": options,
         }
         if self.keep_alive is not None:

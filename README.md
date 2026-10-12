@@ -80,3 +80,10 @@ hgr doctor | periods | ingest | parse | chunk | extract | resolve | load | embed
 ```
 
 `hgr eval` (M8, so sánh GraphRAG với baseline vector) chưa triển khai.
+
+### Khởi động API server
+
+```powershell
+.\.venv\Scripts\activate
+python -m uvicorn hgr.api.main:app --host 127.0.0.1 --port 8000
+```

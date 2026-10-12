@@ -1,13 +1,13 @@
 # Cấu hình chính - xem PLAN.md Mục 7
 llm:
   host: http://localhost:11434          # ghi đè bằng OLLAMA_HOST trong .env
-  chat_model: qwen3:4b-instruct
-  extract_model: qwen3:4b-instruct
+  chat_model: qwen2.5:3b-instruct
+  extract_model: qwen2.5:3b-instruct
   embed_model: bge-m3
   embed_dim: 1024
   num_ctx: 8192
   temperature: 0.0
-  timeout_s: 120
+  timeout_s: 180
   workers: 2
   max_retries: 2
 
@@ -70,15 +70,16 @@ resolve:
   period_blocking: adjacent        # same | adjacent | none
 
 retrieval:
-  chunk_k: 20
-  hops: 2
+  chunk_k: 25
+  hops: 1
   max_degree: p99                  # số cố định hoặc "p99"
   ppr_alpha: 0.85
   ppr_top_n: 25
-  top_chunks: 8
-  overview_top_chunks: 12
-  context_max_tokens: 1200
+  top_chunks: 10
+  overview_top_chunks: 15
+  context_max_tokens: 1500
   rerank: false
+
   rerank_model: BAAI/bge-reranker-v2-m3
   rrf_k: 60
   evidence_boost: 1.3
